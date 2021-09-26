@@ -88,6 +88,16 @@ if __name__ == "__main__":
             # use PIL, to be consistent with evaluation
             # img = read_image(path, format="BGR")
             img = cv2.imread(path)
+            from segmUtils.LIVECellutils.preprocessing import preprocess
+            img = preprocess(img)
+            shape = img.shape
+            max_x, max_y = 800, 1000
+            # max_x, max_y = 520, 704
+            if shape[0] > max_x:
+                img = img[:max_x]
+            if shape[1] > max_y:
+                img = img[:, :max_y]
+
             start_time = time.time()
             predictions, visualized_output = demo.run_on_image(img)
             logger.info(
