@@ -19,6 +19,8 @@ from centermask.config import get_cfg
 # constants
 WINDOW_NAME = "COCO detections"
 
+# TODO: relative import
+from segmUtils.segmentation.LIVECell.convert_output_to_panoptic import convert_predictions_to_panoptic_segm
 
 
 def setup_cfg(args):
@@ -89,14 +91,15 @@ if __name__ == "__main__":
             # img = read_image(path, format="BGR")
             img = cv2.imread(path)
             from segmUtils.LIVECellutils.preprocessing import preprocess
-            img = preprocess(img)
-            shape = img.shape
-            max_x, max_y = 800, 1000
-            # max_x, max_y = 520, 704
-            if shape[0] > max_x:
-                img = img[:max_x]
-            if shape[1] > max_y:
-                img = img[:, :max_y]
+            # img = preprocess(img)
+            # shape = img.shape
+            # print(img.shape)
+            # max_x, max_y = 800, 1000
+            # # max_x, max_y = 520, 704
+            # if shape[0] > max_x:
+            #     img = img[:max_x]
+            # if shape[1] > max_y:
+            #     img = img[:, :max_y]
 
             start_time = time.time()
             predictions, visualized_output = demo.run_on_image(img)
@@ -113,11 +116,27 @@ if __name__ == "__main__":
                 else:
                     assert len(args.input) == 1, "Please specify a directory with args.output"
                     out_filename = args.output
-                visualized_output.save(out_filename)
+                # visualized_output.save(out_filename)
             else:
                 cv2.imshow(WINDOW_NAME, visualized_output.get_image()[:, :, ::-1])
                 if cv2.waitKey(0) == 27:
                     break  # esc to quit
+
+            # Save panoptic version of the isntance segmentation:
+            out_panoptic = convert_predictions_to_panoptic_segm(predictions)
+
+            import matplotlib.pyplot as plt
+            from segmfriends.vis import plot_segm, get_figure, save_plot
+            fig, ax = get_figure(1,1, figsize=(15,15))
+            gray_img = img[...,0][None]
+            plot_segm(ax, out_panoptic[None], background=gray_img, mask_value=0)
+            save_plot(fig, os.path.split(out_filename)[0], os.path.split(out_filename)[1].replace(".png", "_panoptic_plot.png"))
+            plt.close(fig)
+
+
+            # cv2.imwrite(out_filename.replace(".png", "_panoptic.png"), out_panoptic)
+
+
     elif args.webcam:
         assert args.input is None, "Cannot have both --input and --webcam!"
         cam = cv2.VideoCapture(0)
