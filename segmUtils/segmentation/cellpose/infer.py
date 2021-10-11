@@ -7,6 +7,7 @@ from segmfriends.utils.various import check_dir_and_create
 
 from cellpose import models, io
 import cv2
+import numpy as np
 
 
 def infer_cellpose_directory(in_dir, out_dir, keep_input_images_in_out_dir=False):
@@ -14,6 +15,7 @@ def infer_cellpose_directory(in_dir, out_dir, keep_input_images_in_out_dir=False
     # To avoid that, we copy images to the output folder and then delete them
     # FIXME: if the output is not empty, this makes a mess (read them as inputs, and delete them afterwards)
     assert not keep_input_images_in_out_dir, "Not implemented"
+    check_dir_and_create(out_dir)
     shutil.rmtree(out_dir)
     check_dir_and_create(out_dir)
     copy_tree(in_dir, out_dir)
@@ -33,7 +35,9 @@ def infer_cellpose_directory(in_dir, out_dir, keep_input_images_in_out_dir=False
 
     for filename, root in input_files:
         image = cv2.imread(os.path.join(root, filename))
-        masks, flows, styles, diams = model.eval(image, diameter=None, channels=[2,1])
+        masks, flows, styles, diams = model.eval(image, diameter=None, channels=[2,0])
+
+        _, file_extension = os.path.splitext(filename)
 
         # Plot result:
         import matplotlib.pyplot as plt
@@ -41,8 +45,11 @@ def infer_cellpose_directory(in_dir, out_dir, keep_input_images_in_out_dir=False
         fig, ax = get_figure(1,1, figsize=(15,15))
         gray_img = image[...,1][None]
         plot_segm(ax, masks[None], background=gray_img, mask_value=0)
-        save_plot(fig, root, filename.replace(".png", "_out_plot.png"))
+        save_plot(fig, root, filename.replace(file_extension, "_out_plot{}".format(file_extension)))
         plt.close(fig)
+
+        cv2.imwrite(os.path.join(root, filename.replace(file_extension, "_segm{}".format(file_extension))),
+                    masks.astype(np.uint16))
 
 
     # command = "python -m cellpose --dir {} --pretrained_model cyto2 --chan 2 --chan2 1 --use_gpu".format( # --no_npy --save_png
@@ -66,8 +73,8 @@ def infer_cellpose_directory(in_dir, out_dir, keep_input_images_in_out_dir=False
 
 if __name__ == "__main__":
     scratch_dir = "/scratch/bailoni"
-    input_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images_small/cellpose")
-    out_dir = os.path.join(scratch_dir, "projects/spacem_segm/segm/cellpose")
+    input_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images/cellpose")
+    out_dir = os.path.join(scratch_dir, "projects/spacem_segm/segm/cellpose_noDAPI")
     infer_cellpose_directory(input_dir, out_dir)
 
 

@@ -21,7 +21,9 @@ WINDOW_NAME = "COCO detections"
 
 # TODO: relative import
 from segmUtils.segmentation.LIVECell.convert_output_to_panoptic import convert_predictions_to_panoptic_segm
-
+import matplotlib.pyplot as plt
+from segmfriends.vis import plot_segm, get_figure, save_plot
+import numpy as np
 
 def setup_cfg(args):
     # load config from file and command-line arguments
@@ -125,16 +127,15 @@ if __name__ == "__main__":
             # Save panoptic version of the isntance segmentation:
             out_panoptic = convert_predictions_to_panoptic_segm(predictions)
 
-            import matplotlib.pyplot as plt
-            from segmfriends.vis import plot_segm, get_figure, save_plot
+            _, file_extension = os.path.splitext(out_filename)
+
             fig, ax = get_figure(1,1, figsize=(15,15))
             gray_img = img[...,0][None]
             plot_segm(ax, out_panoptic[None], background=gray_img, mask_value=0)
-            save_plot(fig, os.path.split(out_filename)[0], os.path.split(out_filename)[1].replace(".png", "_panoptic_plot.png"))
+            save_plot(fig, os.path.split(out_filename)[0], os.path.split(out_filename)[1].replace(file_extension, "_panoptic_plot{}".format(file_extension)))
             plt.close(fig)
 
-
-            # cv2.imwrite(out_filename.replace(".png", "_panoptic.png"), out_panoptic)
+            cv2.imwrite(out_filename.replace(file_extension, "_panoptic{}".format(file_extension)), out_panoptic.astype(np.uint16))
 
 
     elif args.webcam:

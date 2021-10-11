@@ -7,9 +7,9 @@ import shutil
 
 from segmfriends.utils.various import check_dir_and_create
 try:
-    from ..LIVECellutils.preprocessing import preprocess as preprocess_LIVEcell
+    from ..LIVECellutils import preprocessing as preprocess_LIVEcell
 except ImportError:
-    from segmUtils.LIVECellutils.preprocessing import preprocess as preprocess_LIVEcell
+    from segmUtils.LIVECellutils import preprocessing as preprocess_LIVEcell
 
 def read_uint8_img(img_path):
     img = cv2.imread(img_path)
@@ -107,7 +107,10 @@ def process_images_in_path(input_dir_path, out_dir_path, crop_size=None, project
                         cv2.imwrite(os.path.join(cellpose_out, out_filename), cropped_image)
 
                         # Write LIVECell image:
-                        cv2.imwrite(os.path.join(livecell_out, out_filename), preprocess_LIVEcell(img[slice]))
+                        cv2.imwrite(os.path.join(livecell_out, out_filename), preprocess_LIVEcell.preprocess(img[slice],
+                                                                                                             magnification_downsample_factor=1))
+                        # cv2.imwrite(os.path.join(livecell_out, out_filename), preprocess_LIVEcell.preprocess_fluorescence(img[slice]))
+                        # cv2.imwrite(os.path.join(livecell_out, out_filename), img[slice])
                         idx_images += 1
     print("{} images saved in {}".format(idx_images, out_dir_path))
     return idx_images
@@ -118,21 +121,21 @@ def process_images_in_path(input_dir_path, out_dir_path, crop_size=None, project
 if __name__ == "__main__":
     scratch_dir = "/scratch/bailoni"
 
-    # out_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images")
-    # nb_images = process_images_in_path(os.path.join(scratch_dir, "datasets/alyona/20210823_AB_DKFZCocultur_analysis"),
-    #                                    out_dir, crop_size=(2000, 2000), delete_out_dir=True)
+    out_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images")
+    nb_images = process_images_in_path(os.path.join(scratch_dir, "datasets/alyona/20210823_AB_DKFZCocultur_analysis"),
+                                       out_dir, delete_out_dir=True)
     # nb_images = process_images_in_path("/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training", out_dir, starting_index=nb_images)
-    # nb_images = process_images_in_path("/scratch/bailoni/datasets/martijn/CellSegmentationExamples", out_dir, crop_size=(2000, 2000),
+    # nb_images = process_images_in_path("/scratch/bailoni/datasets/martijn/CellSegmentationExamples", out_dir,
     #                        projectdir_depth=-2, starting_index=nb_images)
 
-    out_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images_small")
-    nb_images = process_images_in_path("/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training", out_dir,
-                                       delete_out_dir=True)
-    nb_images = process_images_in_path(os.path.join(scratch_dir, "datasets/alyona/20210823_AB_DKFZCocultur_analysis"),
-                                       out_dir, crop_size=(800, 500), starting_index=nb_images,
-                                       max_nb_images=4)
-    nb_images = process_images_in_path("/scratch/bailoni/datasets/martijn/CellSegmentationExamples", out_dir, crop_size=(1000, 1000),
-                           projectdir_depth=-2, starting_index=nb_images)
+    # out_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images_small")
+    # nb_images = process_images_in_path("/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training", out_dir,
+    #                                    delete_out_dir=True)
+    # nb_images = process_images_in_path(os.path.join(scratch_dir, "datasets/alyona/20210823_AB_DKFZCocultur_analysis"),
+    #                                    out_dir, crop_size=(800, 500), starting_index=nb_images,
+    #                                    max_nb_images=4)
+    # nb_images = process_images_in_path("/scratch/bailoni/datasets/martijn/CellSegmentationExamples", out_dir, crop_size=(1000, 1000),
+    #                        projectdir_depth=-2, starting_index=nb_images)
 
 
 
