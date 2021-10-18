@@ -1,0 +1,5 @@
+trained_models:
+  trained_on_LIVECell: "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_11_23_44_58.553246",
+  trained_on_cellpose: "/scratch/bailoni/datasets/cellpose/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_14_21_14_37.300226"
+  finetuned_LIVECell_lr_02: "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_26_25.124850"
+  finetuned_LIVECell_lr_00002: "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_32_40.166405"

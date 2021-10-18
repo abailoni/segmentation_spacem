@@ -44,9 +44,10 @@ def process_images_in_path(input_dir_path, out_dir_path, crop_size=None, project
 
     for root, dirs, files in os.walk(input_dir_path):
         for filename in files:
-            if filename.endswith("_c0.tif"):
+            if filename.endswith("_c0.tif") or filename.endswith("_c0.png"):
                 # Ignore post-maldi images for the moment:
                 if "cropped_post_maldi_channels" not in os.path.split(root)[1]:
+                    _, file_extension = os.path.splitext(filename)
                     image_path = os.path.join(root, filename)
                     # By default, BGR is read:
                     img = read_uint8_img(image_path)
@@ -92,7 +93,7 @@ def process_images_in_path(input_dir_path, out_dir_path, crop_size=None, project
                         out_filename = "{}_{}_{}_{}_img.png".format(
                             idx_images,
                             prj_name,
-                            filename.replace(".tif", ""),
+                            filename.replace(file_extension, ""),
                             slice_idx
                         )
 
@@ -121,13 +122,16 @@ def process_images_in_path(input_dir_path, out_dir_path, crop_size=None, project
 if __name__ == "__main__":
     scratch_dir = "/scratch/bailoni"
 
-    out_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images")
-    nb_images = process_images_in_path(os.path.join(scratch_dir, "datasets/alyona/20210823_AB_DKFZCocultur_analysis"),
-                                       out_dir, delete_out_dir=True)
-    # nb_images = process_images_in_path("/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training", out_dir, starting_index=nb_images)
-    # nb_images = process_images_in_path("/scratch/bailoni/datasets/martijn/CellSegmentationExamples", out_dir,
-    #                        projectdir_depth=-2, starting_index=nb_images)
+    # ----------------------
+    # Alyona images:
+    # ----------------------
+    # out_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images")
+    # nb_images = process_images_in_path(os.path.join(scratch_dir, "datasets/alyona/20210823_AB_DKFZCocultur_analysis"),
+    #                                    out_dir, delete_out_dir=True)
 
+    # ----------------------
+    # Collect some crops from given images:
+    # ----------------------
     # out_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images_small")
     # nb_images = process_images_in_path("/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training", out_dir,
     #                                    delete_out_dir=True)
@@ -137,5 +141,10 @@ if __name__ == "__main__":
     # nb_images = process_images_in_path("/scratch/bailoni/datasets/martijn/CellSegmentationExamples", out_dir, crop_size=(1000, 1000),
     #                        projectdir_depth=-2, starting_index=nb_images)
 
+    # ----------------------
+    # Get all labelled images from Alex:
+    # ----------------------
+    out_dir = os.path.join(scratch_dir, "projects/spacem_segm/alex_labeled")
+    process_images_in_path("/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training", out_dir)
 
 
