@@ -11,10 +11,6 @@ import pandas as pd
 import vigra
 
 from segmfriends.utils.various import check_dir_and_create
-try:
-    from ..LIVECellutils import preprocessing as preprocess_LIVEcell
-except ImportError:
-    from segmUtils.LIVECellutils import preprocessing as preprocess_LIVEcell
 
 
 def compute_scores(pred_dir, GT_dir,
@@ -102,8 +98,17 @@ if __name__ == "__main__":
     # input_dir = os.path.join(scratch_dir, "projects/spacem_segm/alex_labeled")
     # out_dir = os.path.join(scratch_dir, "projects/train_cellpose/predictions/test/model1_alex")
 
-    models_to_test = ["cyto2_diamEst", "trained_on_LIVECell_diamEst", "trained_on_cellpose_diamEst", "cyto_diamEst",
-                      "finetuned_LIVECell_lr_02_diamEst"]
+    models_to_test = ["cyto2_diamEst",
+                      "cyto_diamEst",
+                      "trained_on_LIVECell_noDiamEst",
+                      "trained_on_cellpose_noDiamEst",
+                      "finetuned_LIVECell_lr_02_noDiamEst",
+                      "finetuned_LIVECell_lr_00002_noDiamEst",
+                      "trained_on_LIVECell_diamEst",
+                      "trained_on_cellpose_diamEst",
+                      "finetuned_LIVECell_lr_02_diamEst",
+                      # "finetuned_LIVECell_lr_00002_diamEst",
+                      ]
 
     dirs_to_process = [
         [
@@ -160,7 +165,7 @@ if __name__ == "__main__":
 
 
     df = pd.DataFrame(collected_scores, columns=['Data type', 'Model name', 'Estimated cell size'] + collected_scores_names)
-    df.sort_values(by=['Data type', 'Model name'], inplace=True)
+    df.sort_values(by=['Data type', 'aji'], inplace=True, ascending=False)
     df.to_csv("/scratch/bailoni/projects/train_cellpose/scores_with_estimated_diameters_all.csv")
 
 

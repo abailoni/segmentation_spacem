@@ -84,10 +84,10 @@ if __name__ == "__main__":
     # out_dir = os.path.join(scratch_dir, "projects/train_cellpose/predictions/test/model1")
 
     models_to_test = {
-        "finetuned_LIVECell_lr_02": "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_26_25.124850",
-        "trained_on_LIVECell": "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_11_23_44_58.553246",
+        # "finetuned_LIVECell_lr_02": "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_26_25.124850",
+        # "trained_on_LIVECell": "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_11_23_44_58.553246",
         "cyto2": "cyto2",
-        "cyto": "cyto",
+        # "cyto": "cyto",
         # "trained_on_cellpose": "/scratch/bailoni/datasets/cellpose/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_14_21_14_37.300226",
         # "finetuned_LIVECell_lr_00002": "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_32_40.166405",
 
@@ -95,33 +95,41 @@ if __name__ == "__main__":
     }
 
     dirs_to_process = [
-        # LIVECell, CellPose full, Alex:
-        [
-            os.path.join(scratch_dir, "projects/spacem_segm/alex_labeled/cellpose"),
-            os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/alex")
-        ],
-        [
-            os.path.join(scratch_dir, "datasets/LIVECell/panoptic/livecell_coco_test"),
-            os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/LIVECell_test")
-        ],
-        [
-            os.path.join(scratch_dir, "datasets/cellpose/test"),
-            os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cellpose_test")
-        ],
+        # # LIVECell, CellPose full, Alex:
+        # [
+        #     os.path.join(scratch_dir, "projects/spacem_segm/alex_labeled/cellpose"),
+        #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/alex")
+        # ],
+        # [
+        #     os.path.join(scratch_dir, "datasets/LIVECell/panoptic/livecell_coco_test"),
+        #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/LIVECell_test")
+        # ],
+        # [
+        #     os.path.join(scratch_dir, "datasets/cellpose/test"),
+        #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cellpose_test")
+        # ],
+        # ------------------------------------------------
         # # Few cropped images:
         # [
         #     os.path.join(scratch_dir, "projects/spacem_segm/input_images_small/cellpose"),
         #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cropped_images")
         # ],
+        # ------------------------------------------------
         # # Alyona images:
         # [
         #     os.path.join(scratch_dir, "projects/spacem_segm/input_images/cellpose"),
         #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/alyona")
         # ],
+        # ------------------------------------------------
+        # New images from Alex:
+        [
+            "/scratch/bailoni/datasets/alex/glioblastoma/preprocessed/cellpose",
+            "/scratch/bailoni/datasets/alex/glioblastoma/segmentations/$MODEL_NAME"
+        ]
     ]
 
 
-    diameter = 30
+    diameter = 0
 
 
 

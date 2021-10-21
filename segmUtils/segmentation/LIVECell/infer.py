@@ -29,7 +29,8 @@ def infer_LIVECell_directory(in_dir, out_dir, model="anchor-free"):
                 if not filename.startswith("."):
                     image_names += "{} ".format(os.path.join(root, filename))
                     infer_script = "infer-centermask.py" if model == "anchor-free" else "infer-anchor-based.py"
-                    command = "ipython segmUtils/segmentation/LIVECell/infer-centermask.py --  --input {} --output {} --config-file {}".format(
+                    command = "ipython segmUtils/segmentation/LIVECell/{} --  --input {} --output {} --config-file {}".format(
+                        infer_script,
                         os.path.join(root, filename), out_dir, config_path
                     )
                     os.system(command)
@@ -58,9 +59,22 @@ if __name__ == "__main__":
     assert model in ["anchor-based", "anchor-free"]
 
     scratch_dir = "/scratch/bailoni"
-    input_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images/LIVECell")
-    out_dir = os.path.join(scratch_dir, "projects/spacem_segm/segm/LIVECell")
-    # input_dir = os.path.join(scratch_dir, "projects/spacem_segm/original_LIVECell_images")
-    # out_dir = os.path.join(scratch_dir, "projects/spacem_segm/segm/original_LIVECell_images")
+
+    # # ------------------------------------------
+    # # Original directory with LIVECell data:
+    # # ------------------------------------------
+    # input_dir = os.path.join(scratch_dir, "projects/spacem_segm/input_images/LIVECell")
+    # out_dir = os.path.join(scratch_dir, "projects/spacem_segm/segm/LIVECell")
+    # # input_dir = os.path.join(scratch_dir, "projects/spacem_segm/original_LIVECell_images")
+    # # out_dir = os.path.join(scratch_dir, "projects/spacem_segm/segm/original_LIVECell_images")
+
+    # ------------------------------------------
+    # New Alex data:
+    # ------------------------------------------
+    input_dir = "/scratch/bailoni/datasets/alex/glioblastoma/preprocessed/LIVECell"
+    out_dir = "/scratch/bailoni/datasets/alex/glioblastoma/segmentations/$MODEL_NAME"
+
+    out_dir = out_dir.replace("$MODEL_NAME", "LIVECell-{}".format(model))
     infer_LIVECell_directory(input_dir, out_dir, model)
+
 
