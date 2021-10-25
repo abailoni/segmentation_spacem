@@ -160,11 +160,19 @@ if __name__ == "__main__":
     # out_dir = os.path.join(scratch_dir, "projects/spacem_segm/alex_labeled")
     # process_images_in_path("/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training", out_dir)
 
+    # # ----------------------
+    # # Get new glioblastoma images from Alex:
+    # # ----------------------
+    # out_dir = os.path.join("/scratch/bailoni/datasets/alex/glioblastoma/preprocessed")
+    # process_images_in_path("/scratch/bailoni/datasets/alex/glioblastoma/images", out_dir, filter_c0_images=False,
+    #                        rename_unique=False)
+
     # ----------------------
-    # Get new glioblastoma images from Alex:
+    # Get new glioblastoma images from Alex v2:
     # ----------------------
-    out_dir = os.path.join("/scratch/bailoni/datasets/alex/glioblastoma/preprocessed")
-    process_images_in_path("/scratch/bailoni/datasets/alex/glioblastoma/images", out_dir, filter_c0_images=False,
+    out_dir = os.path.join()
+    process_images_in_path("/g/scb/alexandr/shared/mattausc/data/210920_glioblastoma-v2_spacem/for_alberto",
+                            "/scratch/bailoni/datasets/alex/glioblastoma_v2/preprocessed", filter_c0_images=False,
                            rename_unique=False)
 
 

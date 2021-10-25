@@ -46,20 +46,26 @@ if __name__ == "__main__":
                 "4_train_s1w3_img_t1_z1_c0_0_img_cp_masks.png",
             "7_train_s2w3_img_t1_z1_c0_0_img_cp_masks.png"
                 ],
-        "LIVECell_test": [
-            "A172_Phase_C7_1_00d04h00m_4_cp_masks.png",
-            "A172_Phase_C7_1_02d16h00m_3_cp_masks.png",
-            "BT474_Phase_D3_2_04d12h00m_1_cp_masks.png",
-            "BV2_Phase_A4_2_03d00h00m_1_cp_masks.png",
-            "Huh7_Phase_A12_2_04d00h00m_3_cp_masks.png",
-            "MCF7_Phase_H4_1_01d12h00m_2_cp_masks.png",
-            "SHSY5Y_Phase_A10_1_00d16h00m_4_cp_masks.png",
-            "SkBr3_Phase_G3_1_03d12h00m_2_cp_masks.png"
-        ]
+        "cropped_images": [
+            "4_W4_20210823_AB_DKFZCocultur_analysis_img_t1_z1_c0_0_img_cp_masks.png",
+            "5_W4_20210823_AB_DKFZCocultur_analysis_img_t1_z1_c0_1_img_cp_masks.png",
+            "6_W4_20210823_AB_DKFZCocultur_analysis_img_t1_z1_c0_2_img_cp_masks.png"
+        ],
+        # "LIVECell_test": [
+        #     "A172_Phase_C7_1_00d04h00m_4_cp_masks.png",
+        #     "A172_Phase_C7_1_02d16h00m_3_cp_masks.png",
+        #     "BT474_Phase_D3_2_04d12h00m_1_cp_masks.png",
+        #     "BV2_Phase_A4_2_03d00h00m_1_cp_masks.png",
+        #     "Huh7_Phase_A12_2_04d00h00m_3_cp_masks.png",
+        #     "MCF7_Phase_H4_1_01d12h00m_2_cp_masks.png",
+        #     "SHSY5Y_Phase_A10_1_00d16h00m_4_cp_masks.png",
+        #     "SkBr3_Phase_G3_1_03d12h00m_2_cp_masks.png"
+        # ]
     }
 
 
-    models_to_compare = {"cyto2_diamEst": "CellPose cyto2 model",
+    models_to_compare = {
+                        "cyto2_diamEst": "CellPose cyto2 model",
                       # "cyto_diamEst": "CellPose cyto",
                       "trained_on_LIVECell_noDiamEst": "Trained on LIVECell+CellPose from scratch",
                       # "trained_on_LIVECell_diamEst": "Trained on LIVECell+CellPose data (est diam)",
@@ -69,19 +75,24 @@ if __name__ == "__main__":
                       # "finetuned_LIVECell_lr_00002_noDiamEst": "cyto2 finetuned on LIVECell+CellPose",
                       # "finetuned_LIVECell_lr_00002_diamEst": "finetuned_LIVECell_lr_00002_diamEst",
                       # "finetuned_LIVECell_lr_02_diamEst": "finetuned_LIVECell_lr_02_diamEst",
+                      "cleaned_finetuned_LIVECell_v1_noDiamEst": "cleaned_finetuned_LIVECell_v1_noDiamEst",
+                      # "cleaned_LIVECell_pip_noDiamEst": "cleaned_LIVECell_pip",
                       }
     # -----------------------
+
 
 
     RAW_IMAGE_DIR = {
         "LIVECell_test": "/scratch/bailoni/projects/train_cellpose/data/test",
         "cellpose_test": "/scratch/bailoni/projects/train_cellpose/data/test",
-        "alex": "/scratch/bailoni/projects/spacem_segm/alex_labeled/cellpose"
+        "alex": "/scratch/bailoni/projects/spacem_segm/alex_labeled/cellpose",
+        "cropped_images": "/scratch/bailoni/projects/spacem_segm/input_images_small/cellpose",
     }
     GT_DIR = {
         "LIVECell_test": "/scratch/bailoni/projects/train_cellpose/data/test",
         "cellpose_test": "/scratch/bailoni/projects/train_cellpose/data/test",
-        "alex": "/scratch/bailoni/datasets/alex/labels"
+        "alex": "/scratch/bailoni/datasets/alex/labels",
+        "cropped_images": None
     }
 
     GT_filter = "_masks"
@@ -109,23 +120,26 @@ if __name__ == "__main__":
         for pred_img_name in pred_imgs_to_plot[dataset_name]:
             pred_basename, pred_extension = os.path.splitext(pred_img_name)
             nb_models = len(models_to_compare)
-            # f, ax = plt.subplots(ncols=(nb_models+ax_offset), nrows=1,
-            #                      figsize=(10*(nb_models+ax_offset-1), 10))
-            f, ax = plt.subplots(ncols=1, nrows=(nb_models+ax_offset),
-                                 figsize=(10, 10*(nb_models+ax_offset-1)))
+            f, ax = plt.subplots(ncols=(nb_models+ax_offset), nrows=1,
+                                 figsize=(10*(nb_models+ax_offset-1), 10))
+            # f, ax = plt.subplots(ncols=1, nrows=(nb_models+ax_offset),
+            #                      figsize=(10, 10*(nb_models+ax_offset-1)))
             for a in f.get_axes():
                 a.axis('off')
 
+            # FIXME: replacing filter in raw and GT has problems if pred_filter == ""
             # Load raw and GT:
             raw_img_name = pred_img_name.replace(pred_filter, raw_filter).replace(pred_extension, raw_extension)
             raw = cv2.imread(os.path.join(RAW_IMAGE_DIR[dataset_name], raw_img_name))
             raw = raw[:,:,1] # Only keep green channel
-            gt_name = pred_img_name.replace(pred_filter, GT_filter)
-            gt_segm = imageio.imread(os.path.join(GT_DIR[dataset_name], gt_name))
             ax[0].matshow(raw, cmap="gray")
             ax[0].set_title("Input image", fontweight='bold')
-            segm_vis.plot_segm(ax[1], gt_segm[None], background=raw[None], alpha_labels=0.45, alpha_boundary=0.4, mask_value=0)
-            ax[1].set_title("Ground truth", fontweight='bold')
+
+            if GT_DIR[dataset_name] is not None:
+                gt_name = pred_img_name.replace(pred_filter, GT_filter)
+                gt_segm = imageio.imread(os.path.join(GT_DIR[dataset_name], gt_name))
+                segm_vis.plot_segm(ax[1], gt_segm[None], background=raw[None], alpha_labels=0.45, alpha_boundary=0.4, mask_value=0)
+                ax[1].set_title("Ground truth", fontweight='bold')
 
             for model_idx, model_name in enumerate(models_to_compare):
                 model_name_to_plot = models_to_compare[model_name]
@@ -142,6 +156,7 @@ if __name__ == "__main__":
             check_dir_and_create(os.path.join(PLOT_DIR, dataset_name))
             f.savefig(os.path.join(PLOT_DIR, dataset_name, "{}_compare_plot.png".format(pred_basename.replace(pred_filter, ""))),
                       format='png')
+
 
 
 

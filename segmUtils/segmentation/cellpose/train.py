@@ -2,18 +2,18 @@ import os
 
 if __name__ == "__main__":
 
-    # --------------------------
-    # CellPose data + LIVECell data:
-    # --------------------------
-    train_folder = "/scratch/bailoni/projects/train_cellpose/data/train"
-    test_folder = "/scratch/bailoni/projects/train_cellpose/data/test"
-    # train_folder = "/scratch/bailoni/projects/train_cellpose/data/few_images_train"
-    # test_folder = "/scratch/bailoni/projects/train_cellpose/data/few_images_test"
-    pretrained_model = "cyto2"
-    # pretrained_model = "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_11_16_44_29.601896"
-    save_every = 20
-    # initial_learning_rate = 0.2  # 0.0002
-    initial_learning_rate = 0.0002  # 0.0002
+    # # --------------------------
+    # # CellPose data + LIVECell data:
+    # # --------------------------
+    # train_folder = "/scratch/bailoni/projects/train_cellpose/data/train"
+    # test_folder = "/scratch/bailoni/projects/train_cellpose/data/test"
+    # # train_folder = "/scratch/bailoni/projects/train_cellpose/data/few_images_train"
+    # # test_folder = "/scratch/bailoni/projects/train_cellpose/data/few_images_test"
+    # pretrained_model = "cyto2"
+    # # pretrained_model = "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_11_16_44_29.601896"
+    # save_every = 20
+    # # initial_learning_rate = 0.2  # 0.0002
+    # initial_learning_rate = 0.0002  # 0.0002
 
 
     # # --------------------------
@@ -26,9 +26,25 @@ if __name__ == "__main__":
     # # save_dir = "/scratch/bailoni/projects/train_cellpose/models/only_cellpose_data"
     # initial_learning_rate = 0.2  # 0.0002
 
+    # --------------------------
+    # Only cleaned LIVECell + Cellpose data:
+    # --------------------------
+    train_folder = "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train"
+    test_folder = "/scratch/bailoni/projects/train_cellpose/data/test"
+    # train_folder = "/scratch/bailoni/projects/train_cellpose/data/few_images_train"
+    # test_folder = "/scratch/bailoni/projects/train_cellpose/data/few_images_test"
+    # pretrained_model = None
+    pretrained_model = "cyto2"
+    # pretrained_model = "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_11_16_44_29.601896"
+    save_every = 60
+    # initial_learning_rate = 0.2  # 0.0002
+    initial_learning_rate = 0.02  # 0.0002
+
+
+
     first_ch = 2
     second_ch = 1
-    nb_epochs = 500 # 500
+    nb_epochs = 2000 # 500
 
     batch_size = 8
 
@@ -41,7 +57,7 @@ if __name__ == "__main__":
 
     command = "ipython -m cellpose -- --train --use_gpu --fast_mode --dir {} --test_dir {} --pretrained_model {} " \
               "--chan {} --chan2 {} --n_epochs {} --learning_rate {} --batch_size {} " \
-              "--no_npy --mask_filter {} --save_every {} --verbose --train_size".format(
+              "--no_npy --mask_filter {} --save_every {} --train_size".format(
         train_folder,
         test_folder,
         pretrained_model,

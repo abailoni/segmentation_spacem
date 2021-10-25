@@ -3,3 +3,9 @@ trained_models:
   trained_on_cellpose: "/scratch/bailoni/datasets/cellpose/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_14_21_14_37.300226"
   finetuned_LIVECell_lr_02: "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_26_25.124850"
   finetuned_LIVECell_lr_00002: "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_32_40.166405"
+  cleaned_LIVECell_lr_02_repoCellPose: "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_21_17_28_59.152864"
+  cleaned_LIVECell_lr_02_pipCellPose: "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_21_22_50_40.020632"
+
+# With a lot of epochs and excluded images from datasets A172 and BOV with overlapping cells:
+  moreCleaned_LIVECell_lr_02_SGD: "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_02_49.688436"
+  moreCleaned_LIVECell_lr_002_SGD_cyto2: "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_08_49.114912"

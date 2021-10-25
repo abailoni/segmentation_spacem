@@ -98,16 +98,22 @@ if __name__ == "__main__":
     # input_dir = os.path.join(scratch_dir, "projects/spacem_segm/alex_labeled")
     # out_dir = os.path.join(scratch_dir, "projects/train_cellpose/predictions/test/model1_alex")
 
-    models_to_test = ["cyto2_diamEst",
-                      "cyto_diamEst",
-                      "trained_on_LIVECell_noDiamEst",
-                      "trained_on_cellpose_noDiamEst",
-                      "finetuned_LIVECell_lr_02_noDiamEst",
-                      "finetuned_LIVECell_lr_00002_noDiamEst",
-                      "trained_on_LIVECell_diamEst",
-                      "trained_on_cellpose_diamEst",
-                      "finetuned_LIVECell_lr_02_diamEst",
+    models_to_test = [
+                      # "cyto_diamEst",
+                      # "trained_on_cellpose_noDiamEst",
+                      # "finetuned_LIVECell_lr_02_noDiamEst",
+                      # "trained_on_LIVECell_diamEst",
+                      # "trained_on_cellpose_diamEst",
+                      # "finetuned_LIVECell_lr_02_diamEst",
                       # "finetuned_LIVECell_lr_00002_diamEst",
+                      # //////////////////////////////////
+                        "cyto2_diamEst",
+                      "trained_on_LIVECell_noDiamEst",
+                      "finetuned_LIVECell_lr_00002_noDiamEst",
+                      "cleaned_finetuned_LIVECell_v1_noDiamEst",
+                      "cleaned_from_scratch_LIVECell_v1_noDiamEst",
+                      # "cleaned_finetuned_LIVECell_v1_diamEst",
+                      # "cleaned_from_scratch_LIVECell_v1_diamEst",
                       ]
 
     dirs_to_process = [
@@ -120,8 +126,8 @@ if __name__ == "__main__":
             os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cellpose_test")
         ],
         [
-            os.path.join(scratch_dir, "datasets/LIVECell/panoptic/livecell_coco_test"),
-            os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/LIVECell_test")
+            os.path.join(scratch_dir, "datasets/LIVECell/panoptic/livecell_coco_test_cleaned"),
+            os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/LIVECell_test_cleaned")
         ],
     ]
 
@@ -166,7 +172,7 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(collected_scores, columns=['Data type', 'Model name', 'Estimated cell size'] + collected_scores_names)
     df.sort_values(by=['Data type', 'aji'], inplace=True, ascending=False)
-    df.to_csv("/scratch/bailoni/projects/train_cellpose/scores_with_estimated_diameters_all.csv")
+    df.to_csv("/scratch/bailoni/projects/train_cellpose/scores_cleaned_LIVECell.csv")
 
 
 
