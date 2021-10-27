@@ -55,7 +55,7 @@ if __name__ == "__main__":
     #     for file in files:
     #         if
 
-    command = "ipython -m cellpose -- --train --use_gpu --fast_mode --dir {} --test_dir {} --pretrained_model {} " \
+    command = "/scratch/bailoni/miniconda3/envs/pyT17/bin/ipython -m cellpose -- --train --use_gpu --fast_mode --dir {} --test_dir {} --pretrained_model {} " \
               "--chan {} --chan2 {} --n_epochs {} --learning_rate {} --batch_size {} " \
               "--no_npy --mask_filter {} --save_every {} --train_size".format(
         train_folder,

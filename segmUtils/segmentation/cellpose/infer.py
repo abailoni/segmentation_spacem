@@ -92,10 +92,15 @@ if __name__ == "__main__":
         # "finetuned_LIVECell_lr_00002": "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_32_40.166405",
         # "cleaned_LIVECell": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_21_17_28_59.152864",
         # "cleaned_LIVECell_pip": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_21_22_50_40.020632",
-        "cleaned_finetuned_LIVECell_v1": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_08_49.114912",
-        "cleaned_from_scratch_LIVECell_v1": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_02_49.688436",
-
+        # "cleaned_finetuned_LIVECell_v1": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_08_49.114912",
+        # "cleaned_from_scratch_LIVECell_v1": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_02_49.688436",
         # "scratch": None
+        "full_LIVECell_lr_002_SGD_cyto2": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_2021_10_25_15_19_08.80932",
+
+    }
+
+    overwrite_estimate_diameter = {
+        "cyto2": True
     }
 
 
@@ -105,20 +110,20 @@ if __name__ == "__main__":
         #     os.path.join(scratch_dir, "projects/spacem_segm/alex_labeled/cellpose"),
         #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/alex")
         # ],
-        [
-            os.path.join(scratch_dir, "datasets/LIVECell/panoptic/livecell_coco_test_cleaned"),
-            os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/LIVECell_test_cleaned")
-        ],
+        # [
+        #     os.path.join(scratch_dir, "datasets/LIVECell/panoptic/livecell_coco_test_cleaned"),
+        #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/LIVECell_test_cleaned")
+        # ],
         # [
         #     os.path.join(scratch_dir, "datasets/cellpose/test"),
         #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cellpose_test")
         # ],
         # ------------------------------------------------
         # Few cropped images:
-        # [
-        #     os.path.join(scratch_dir, "projects/spacem_segm/input_images_small/cellpose"),
-        #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cropped_images")
-        # ],
+        [
+            os.path.join(scratch_dir, "projects/spacem_segm/input_images_small/cellpose"),
+            os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cropped_images")
+        ],
         # ------------------------------------------------
         # Alyona images:
         # [
@@ -136,7 +141,8 @@ if __name__ == "__main__":
 
     # diameter = 30
 
-
+    save_npy = True
+    estimate_diameter = [False]
 
 
 
@@ -144,10 +150,12 @@ if __name__ == "__main__":
     second_ch = 1
     mask_filter = "_masks"
 
-    for diameter in [0]:
+    for default_est_diam in estimate_diameter:
         for model_name, model_path in models_to_test.items():
+            est_diam = overwrite_estimate_diameter[model_name] if model_name in overwrite_estimate_diameter else default_est_diam
+            diameter = 0 if est_diam else 30
             # Update model names accordingly:
-            model_name = model_name + "_diamEst" if diameter == 0 else model_name + "_noDiamEst"
+            model_name = model_name + "_diamEst" if est_diam else model_name + "_noDiamEst"
 
             for input_dir, out_dir in dirs_to_process:
                 out_dir = out_dir.replace("$MODEL_NAME", model_name)
@@ -161,15 +169,16 @@ if __name__ == "__main__":
                 command = "/scratch/bailoni/miniconda3/envs/pyT17/bin/ipython -m cellpose " \
                           "-- --use_gpu --dir {} --savedir {} --pretrained_model {} " \
                           "--chan {} --chan2 {} " \
-                          "--no_npy --mask_filter {} --save_png --diameter {} " \
-                          "--use_size_model".format(
+                          "--mask_filter {} --save_png --diameter {} " \
+                          "--use_size_model {}".format(
                     input_dir,
                     out_dir,
                     model_path,
                     first_ch,
                     second_ch,
                     mask_filter,
-                    diameter
+                    diameter,
+                    "" if save_npy else "--no_npy"
                 )
                 os.system(command)
 
