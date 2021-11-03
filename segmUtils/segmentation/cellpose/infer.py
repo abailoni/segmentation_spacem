@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     models_to_test = {
         # "finetuned_LIVECell_lr_02": "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_17_10_26_25.124850",
-        # "cyto2": "cyto2",
+        "cyto2": "cyto2",
         # "trained_on_LIVECell": "/scratch/bailoni/projects/train_cellpose/data/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_11_23_44_58.553246",
         # "cyto": "cyto",
         # "trained_on_cellpose": "/scratch/bailoni/datasets/cellpose/train/models/cellpose_residual_on_style_on_concatenation_off_train_2021_10_14_21_14_37.300226",
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         # "cleaned_finetuned_LIVECell_v1": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_08_49.114912",
         # "cleaned_from_scratch_LIVECell_v1": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_02_49.688436",
         # "scratch": None
-        "full_LIVECell_lr_002_SGD_cyto2": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_2021_10_25_15_19_08.80932",
+        # "full_LIVECell_lr_002_SGD_cyto2": "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_2021_10_25_15_19_08.80932",
 
     }
 
@@ -120,10 +120,10 @@ if __name__ == "__main__":
         # ],
         # ------------------------------------------------
         # Few cropped images:
-        [
-            os.path.join(scratch_dir, "projects/spacem_segm/input_images_small/cellpose"),
-            os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cropped_images")
-        ],
+        # [
+        #     os.path.join(scratch_dir, "projects/spacem_segm/input_images_small/cellpose"),
+        #     os.path.join(scratch_dir, "projects/train_cellpose/predictions/$MODEL_NAME/cropped_images")
+        # ],
         # ------------------------------------------------
         # Alyona images:
         # [
@@ -136,12 +136,26 @@ if __name__ == "__main__":
         #     "/scratch/bailoni/datasets/alex/glioblastoma/preprocessed/cellpose",
         #     "/scratch/bailoni/datasets/alex/glioblastoma/segmentations/$MODEL_NAME"
         # ]
+        # ------------------------------------------------
+        # New datasets from Alex and Martjin
+        # [
+        #     "/scratch/bailoni/datasets/alex/glioblastoma-v2/preprocessed/cellpose",
+        #     "/scratch/bailoni/datasets/alex/glioblastoma-v2/segmentations/$MODEL_NAME"
+        # ],
+        [
+            "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2/cellpose",
+            "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2/$MODEL_NAME"
+        ],
+        # [
+        #     "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_ch2/cellpose",
+        #     "/scratch/bailoni/datasets/martijn/examplesMacrophages/predictions_ch2/$MODEL_NAME"
+        # ]
     ]
 
 
     # diameter = 30
 
-    save_npy = True
+    save_npy = False
     estimate_diameter = [False]
 
 
