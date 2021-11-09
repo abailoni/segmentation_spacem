@@ -14,7 +14,9 @@ except ImportError:
 import pandas
 import zarr
 
-from segmfriends.io.zarr import append_arrays_to_zarr
+import segmfriends.io.zarr as zarr_utils
+import segmfriends.utils.various as var_utils
+
 
 def read_uint8_img(img_path):
     img = cv2.imread(img_path)
@@ -32,171 +34,177 @@ def read_uint8_img(img_path):
     return img
 
 
-
-def process_images_in_path(input_dir_path, out_dir_path, crop_size=None, projectdir_depth=None,
-                           delete_out_dir=False, starting_index=0, max_nb_images=None,
-                           process_channels=True, rename_unique=True, max_nb_crops_per_image=None,
-                           BF_ch_filter="_c0", DAPI_ch_filter="_c1", general_filter=None):
+def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None, projectdir_depth=None,
+                                   starting_index=0, max_nb_images=None,
+                                   ensure_all_channel_existance=True,
+                                   rename_unique=True, max_nb_crops_per_image=None,
+                                   general_filter=None,
+                                   precrop=None,
+                                   verbose=False, **channels_filters):
     """
-
-    :param input_dir_path:
-    :param out_dir_path:
-    :param crop_size:
-    :param projectdir_depth:
-    :param delete_out_dir:
-    :param starting_index:
-    :param max_nb_images: only collect a max amount of images and then stop
-    :param process_channels: Whether to expect images with BF_ch_filter and DAPI_ch_filter patterns
-    :param rename_unique:
-    :param max_nb_crops_per_image: only collect a given amount of crops per image
-    :param BF_ch_filter:
-    :param DAPI_ch_filter:
-    :param general_filter: a string that should be present in all processed image files, used to mask some of the
-                        images (useful expecially if process_channels is False, but we want to skip certain images)
-    :return:
+    :param channels_filters: Dictionary of channel names and associated ending-filename-filters. For example:
+                {BF: "_ch0", DAPI: "_ch1"}. If all images should be prccessed as single channel, a None filter can be
+                passed, e.g. {main_channel_name: None}
     """
+    # Delete previous images in the zarr group:
+    if os.path.exists(out_zarr_path):
+        shutil.rmtree(out_zarr_path)
 
-    check_dir_and_create(out_dir_path)
-    if delete_out_dir:
-        shutil.rmtree(out_dir_path)
-        check_dir_and_create(out_dir_path)
+    assert len(channels_filters), "No channel names passed!"
 
-    cellpose_out = os.path.join(out_dir_path, "cellpose")
-    livecell_out = os.path.join(out_dir_path, "LIVECell")
-    check_dir_and_create(cellpose_out)
-    check_dir_and_create(livecell_out)
+    if any([channels_filters[ch_name] is None for ch_name in channels_filters]):
+        assert len(channels_filters) == 1, "Onyl one channel can be given without filename-filter!"
 
-    def write_image_cellpose(img, crop_slice, out_dir, out_name):
-        # Write Cell-Pose image:
-        img = img[crop_slice]
-        cv2.imwrite(os.path.join(out_dir, out_name), img)
-
-        z_cellpose_path = os.path.join(out_dir_path, "cellpose.zarr")
-        append_arrays_to_zarr(z_cellpose_path, add_array_dimensions=True,
-                              BF=img[...,1], DAPI=img[...,2])
-
-
-
-    def write_image_livecell(img, crop_slice, out_dir, out_name):
-        # Write LIVECell image:
-        pass
-        # cv2.imwrite(os.path.join(out_dir, out_name), preprocess_LIVEcell.preprocess(img[crop_slice],
-        #                                                                             magnification_downsample_factor=1))
-
+    main_ch_name = [ch_name for ch_name in channels_filters][0]
+    main_ch_filter = channels_filters[main_ch_name]
 
     def get_image_paths():
+        def read_image(img_path):
+            img = read_uint8_img(img_path)[..., 0]
+            if precrop is not None:
+                img = img[var_utils.parse_data_slice(precrop)]
+            return img
+
         idx_images = starting_index
 
         # Initialize lists for creating pandas dataframe:
+        path_headers = None
         all_image_paths = []
 
         for root, dirs, files in os.walk(input_dir_path):
             for filename in files:
                 file_basename, file_extension = os.path.splitext(filename)
-                if not process_channels or file_basename.endswith(BF_ch_filter):
+                if file_basename.endswith(main_ch_filter) or main_ch_filter is None:
+                    # Check for general filter:
+                    if general_filter is not None:
+                        if general_filter not in file_basename:
+                            continue
                     # Ignore post-maldi images for the moment:
-                    if "cropped_post_maldi_channels" not in os.path.split(root)[1]:
-                        image_path = os.path.join(root, filename)
-                        # By default, BGR is read:
-                        img = read_uint8_img(image_path)
-                        shape = img.shape # Example: (x, y, 3)
+                    if "cropped_post_maldi_channels" in os.path.split(root)[1]:
+                        continue
+                    main_ch_path = os.path.join(root, filename)
+                    # By default, BGR is read, so remove channel dimension:
+                    main_ch_img = read_image(main_ch_path)
+                    shape = main_ch_img.shape
 
-                        # Cell-Pose training setup:
-                        # - Green channel: image
-                        # - Red channel: DAPI
-                        cellpose_image = img.copy()
-                        cellpose_image[...,0] = 0
-                        cellpose_image[...,2] = 0
+                    # Save main channel in zarr file:
+                    zarr_kwargs = {main_ch_name: main_ch_img}
 
-                        # Save original image path:
-                        new_image_paths = []
-                        input_image_paths = [input_dir_path, os.path.relpath(image_path, input_dir_path), None]
+                    # Save original image path:
+                    new_image_paths = []
+                    new_path_headers = ["Input dir", main_ch_name]
+                    input_image_paths = [input_dir_path, os.path.relpath(main_ch_path, input_dir_path)]
 
-                        # Check if there is a DAPI channel file:
-                        if process_channels:
-                            dapi_image = os.path.join(root, filename.replace(BF_ch_filter, DAPI_ch_filter))
-                            if os.path.exists(dapi_image):
-                                img_dapi = read_uint8_img(dapi_image)
-                                assert img_dapi.shape == shape
+                    for ch_name, ch_filter in channels_filters.items():
+                        if ch_name != main_ch_name:
+                            # Load extra channel and save it to zarr dataset:
+                            image_path = os.path.join(root, filename.replace(main_ch_filter, ch_filter))
+                            if not os.path.exists(image_path):
+                                if ensure_all_channel_existance:
+                                    raise ValueError("Channel {} not found for image {} in {}".format(ch_name, filename, root))
+                                else:
+                                    continue
+                            new_ch_img = read_image(image_path)
+                            assert new_ch_img.shape == shape
+                            zarr_kwargs[ch_name] = new_ch_img
+                            input_image_paths.append(os.path.relpath(image_path, input_dir_path))
+                            new_path_headers.append(ch_name)
 
-                                # Rescale to bring up signal of DAPI channel:
-                                max_dapi = img_dapi.max()
-                                img_dapi = (img_dapi.astype('float32') * 255. / max_dapi).astype('uint8')
+                    if verbose:
+                        print("Processing {} in {}...".format(file_basename, root))
 
-                                cellpose_image[...,2] = img_dapi[...,0]
+                    # Compose unique new name for output image:
+                    if "cropped_pre_maldi_channels" in os.path.split(root)[1] and projectdir_depth is None:
+                        # Deduce name based on well number and project folder (assume usual SpaceM directory structure):
+                        prj_name = "{}_{}".format(root.split("/")[-4], root.split("/")[-5])
+                    elif projectdir_depth is None:
+                        prj_name = os.path.split(root)[1]
+                    else:
+                        prj_name = root.split("/")[projectdir_depth]
 
-                                # Save DAPI image path:
-                                input_image_paths[2] = os.path.relpath(dapi_image, input_dir_path)
+                    if rename_unique:
+                        # If no crop size is given, take the full image as it is:
+                        applied_crop_size = shape if crop_size is None else crop_size
+                        applied_crop_size = tuple(applied_crop_size)
 
+                        window_slices = slidingwindowslices(shape, applied_crop_size, strides=applied_crop_size,
+                                                            shuffle=False, add_overhanging=True)
+                        for slice_idx, crop_slc in enumerate(window_slices):
+                            out_filename = "{}_{}_{}_{}.png".format(
+                                idx_images,
+                                prj_name,
+                                filename.replace(file_extension, ""),
+                                slice_idx
+                            )
 
-                        # Compose unique new name for output image:
-                        if "cropped_pre_maldi_channels" in os.path.split(root)[1] and projectdir_depth is None:
-                            # Deduce name based on well number and project folder (assume usual SpaceM directory structure):
-                            prj_name = "{}_{}".format(root.split("/")[-4], root.split("/")[-5])
-                        elif projectdir_depth is None:
-                            prj_name = os.path.split(root)[1]
-                        else:
-                            prj_name = root.split("/")[projectdir_depth]
+                            # Check if we should stop here:
+                            if max_nb_images is not None:
+                                if idx_images - starting_index >= max_nb_images:
+                                    all_image_paths += new_image_paths
+                                    return all_image_paths, idx_images, path_headers
+                            if max_nb_crops_per_image is not None:
+                                if slice_idx >= max_nb_crops_per_image:
+                                    break
 
-                        if rename_unique:
-                            # If no crop size is given, take the full image as it is:
-                            applied_crop_size = shape[:2] if crop_size is None else crop_size
-
-                            nb_channels = shape[2]
-                            applied_crop_size = tuple(applied_crop_size) + (nb_channels,)
-                            window_slices = slidingwindowslices(shape, applied_crop_size, strides=applied_crop_size,
-                                                                shuffle=False, add_overhanging=True)
-                            for slice_idx, crop_slc in enumerate(window_slices):
-                                out_filename = "{}_{}_{}_{}.png".format(
-                                    idx_images,
-                                    prj_name,
-                                    filename.replace(file_extension, ""),
-                                    slice_idx
-                                )
-
-                                # Check if we should stop here:
-                                if max_nb_images is not None:
-                                    if idx_images - starting_index >= max_nb_images:
-                                        all_image_paths += new_image_paths
-                                        return all_image_paths, idx_images
-                                if max_nb_crops_per_image is not None:
-                                    if slice_idx >= max_nb_crops_per_image:
-                                        break
-
-                                # Write Cell-Pose image:
-                                write_image_cellpose(cellpose_image, crop_slc, cellpose_out, out_filename)
-
-                                # Write LIVECell image:
-                                write_image_livecell(img, crop_slc, livecell_out, out_filename)
-                                idx_images += 1
-
-                                # Save out image paths:
-                                new_image_paths.append(
-                                    input_image_paths + [os.path.join(cellpose_out, out_filename), os.path.join(livecell_out, out_filename)]
-                                )
-
-                        else:
-                            assert crop_size is None, "When applying crops, image names must be unique"
-                            out_name = "{}.png".format(file_basename)
-                            write_image_cellpose(cellpose_image, slice(None), cellpose_out, out_name)
-                            write_image_livecell(img, slice(None), livecell_out, out_name)
+                            # Apply crops:
+                            cropped_zarr_kwargs = {zarr_key: data[crop_slc] for zarr_key, data in zarr_kwargs.items()}
+                            # Write to zarr file:
+                            zarr_utils.append_arrays_to_zarr(out_zarr_path, add_array_dimensions=True, keep_valid_mask=True,
+                                                  **cropped_zarr_kwargs)
                             idx_images += 1
 
                             # Save out image paths:
                             new_image_paths.append(
-                                input_image_paths + [os.path.join(cellpose_out, out_name),
-                                                     os.path.join(livecell_out, out_name)]
+                                input_image_paths + [out_filename]
                             )
-                        all_image_paths += new_image_paths
-        return all_image_paths, idx_images
-    all_image_paths, idx_images = get_image_paths()
-    print("{} images saved in {}".format(idx_images, out_dir_path))
+                            new_path_headers.append("Out filename")
+                            path_headers = new_path_headers if path_headers is None else path_headers
+                    else:
+                        assert crop_size is None, "When applying crops, image names must be unique"
+                        out_name = "{}.png".format(file_basename)
+                        zarr_utils.append_arrays_to_zarr(out_zarr_path, add_array_dimensions=True, keep_valid_mask=True,
+                                              **zarr_kwargs)
+                        idx_images += 1
 
-    df = pandas.DataFrame(data=all_image_paths, columns=["Input-dir", "Input-BF", "Input-DAPI", "Out-Cellpose", "Out-LIVECell"])
-    df.to_csv(os.path.join(out_dir_path, "image_paths.csv"), index=False)
+                        # Save out image paths:
+                        new_image_paths.append(
+                            input_image_paths + [out_name]
+                        )
+                        new_path_headers.append("Out filename")
+                        path_headers = new_path_headers if path_headers is None else path_headers
+                    all_image_paths += new_image_paths
+        return all_image_paths, idx_images, path_headers
+
+    all_image_paths, idx_images, path_headers = get_image_paths()
+    print("{} images saved in {}".format(idx_images, out_zarr_path))
+
+    df = pandas.DataFrame(data=all_image_paths,
+                          columns=path_headers)
+    out_csv_file = out_zarr_path.replace(".zarr", ".csv")
+    df.to_csv(out_csv_file, index=False)
     return idx_images
 
 
+def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_ch1=None):
+    csv_path_path = zarr_group_path.replace(".zarr", ".csv")
+    assert os.path.exists(csv_path_path), "No csv file associated to zarr dataset!"
+    check_dir_and_create(out_dir)
+
+    filenames = pandas.read_csv(csv_path_path)
+
+    for i, out_name in enumerate(filenames["Out filename"]):
+        # Get main channel:
+        img = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch0, apply_valid_mask=True, z_slice=i)[..., None]
+
+        # Convert to BGR, where green is ch0 and red is ch1:
+        img = np.pad(img, pad_width=((0,0), (0,0), (1,1)), mode="constant")
+
+        # Get ch1, if needed:
+        if cellpose_ch1 is not None:
+            img[...,2] = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch1, apply_valid_mask=True, z_slice=i)
+
+        # Write:
+        cv2.imwrite(os.path.join(out_dir, out_name), img)
 
 
 if __name__ == "__main__":
@@ -246,9 +254,46 @@ if __name__ == "__main__":
     # process_images_in_path("/scratch/bailoni/datasets/martijn/examplesMacrophages/data",
     #                         "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BF", process_channels=True,
     #                        rename_unique=True, max_nb_crops_per_image=1, delete_out_dir=True)
-    process_images_in_path("/scratch/bailoni/datasets/martijn/examplesMacrophages/data",
-                            "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2", process_channels=True,
-                           rename_unique=True, max_nb_crops_per_image=1, BF_ch_filter="_c0", DAPI_ch_filter="_c2", delete_out_dir=True)
+    # process_images_in_path("/scratch/bailoni/datasets/martijn/examplesMacrophages/data",
+    #                         "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2", process_channels=True,
+    #                        rename_unique=True, max_nb_crops_per_image=1, BF_ch_filter="_c0", DAPI_ch_filter="_c2", delete_out_dir=True)
+
+    # New setup for Veronika images:
+    zarr_out = "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data_cropped.zarr"
+    # convert_images_to_zarr_dataset(
+    #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data",
+    #     zarr_out,
+    #     projectdir_depth=-4,
+    #     precrop="5400:7600, 5900:9300",
+    #     # max_nb_images=1,
+    #     general_filter="fused_tp_",
+    #     mCherry="_ch_0",
+    #     GFP="_ch_1",
+    #     DAPI="_ch_2",
+    #     BF1="_ch_3",
+    #     BF2="_ch_4",
+    #     BF3="_ch_5",
+    #     verbose=True
+    # )
+
+    # from_zarr_to_cellpose(zarr_out,
+    #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF1_DAPI/images",
+    #                        cellpose_ch0="BF1",
+    #                        cellpose_ch1="DAPI"
+    # )
+
+    # from_zarr_to_cellpose(zarr_out,
+    #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF2_DAPI/images",
+    #                        cellpose_ch0="BF2",
+    #                        cellpose_ch1="DAPI"
+    # )
+    from_zarr_to_cellpose(zarr_out,
+                          "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/images",
+                           cellpose_ch0="GFP",
+                           cellpose_ch1="DAPI"
+    )
+
+
 
     print("Done")
 

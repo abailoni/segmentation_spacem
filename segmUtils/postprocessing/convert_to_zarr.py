@@ -16,7 +16,7 @@ import segmfriends.vis as segm_vis
 
 from segmfriends.io.zarr import append_arrays_to_zarr
 
-def convert_segmentations_to_hdf5_volume(pred_dir, out_zarr_path,
+def convert_segmentations_to_zarr(pred_dir, out_zarr_path,
                                          model_name,
                                          pred_filter="_masks",
                                          pred_extension=".png"):
@@ -53,8 +53,9 @@ if __name__ == "__main__":
     #     "LIVECell_test",
     # ]
 
-    model_predictions_to_convert = {
-        "cyto2_diamEst": "CellPose cyto2 model",
+    model_predictions_to_convert = [
+        "cyto2_diamEst",
+        # "cleaned_finetuned_LIVECell_v1_noDiamEst"
                       # "cyto_diamEst": "CellPose cyto",
                       # "trained_on_LIVECell_noDiamEst": "Trained on LIVECell+CellPose from scratch",
                       # "trained_on_LIVECell_diamEst": "Trained on LIVECell+CellPose data (est diam)",
@@ -64,7 +65,7 @@ if __name__ == "__main__":
                       # "finetuned_LIVECell_lr_00002_noDiamEst": "cyto2 finetuned on LIVECell+CellPose",
                       # "finetuned_LIVECell_lr_00002_diamEst": "finetuned_LIVECell_lr_00002_diamEst",
                       # "finetuned_LIVECell_lr_02_diamEst": "finetuned_LIVECell_lr_02_diamEst",
-                      }
+                      ]
 
     # OUT_DIR = "/scratch/bailoni/projects/train_cellpose/hdf5_data"
     # -----------------------
@@ -73,7 +74,10 @@ if __name__ == "__main__":
     PREDICTION_DIRS = [
         # "/scratch/bailoni/datasets/martijn/examplesMacrophages/predictions_BF",
         # "/scratch/bailoni/datasets/martijn/examplesMacrophages/predictions_ch2",
-        "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2",
+        # "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2",
+        # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF1_DAPI/predictions/",
+        # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF2_DAPI/predictions/",
+        "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/predictions/",
     ]
 
 
@@ -81,7 +85,7 @@ if __name__ == "__main__":
         for model_name in model_predictions_to_convert:
             model_pred_dir = os.path.join(pred_dir, model_name)
             assert os.path.exists(model_pred_dir)
-            convert_segmentations_to_hdf5_volume(
+            convert_segmentations_to_zarr(
                 pred_dir=model_pred_dir,
                 out_zarr_path=os.path.join(pred_dir, "predictions.zarr"),
                 model_name=model_name

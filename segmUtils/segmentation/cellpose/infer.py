@@ -142,14 +142,23 @@ if __name__ == "__main__":
         #     "/scratch/bailoni/datasets/alex/glioblastoma-v2/preprocessed/cellpose",
         #     "/scratch/bailoni/datasets/alex/glioblastoma-v2/segmentations/$MODEL_NAME"
         # ],
-        [
-            "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2/cellpose",
-            "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2/$MODEL_NAME"
-        ],
         # [
-        #     "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_ch2/cellpose",
-        #     "/scratch/bailoni/datasets/martijn/examplesMacrophages/predictions_ch2/$MODEL_NAME"
-        # ]
+        #     "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2/cellpose",
+        #     "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2/$MODEL_NAME"
+        # ],
+        ######### Veronika:
+        # [
+        #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF1_DAPI/images",
+        #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF1_DAPI/predictions/$MODEL_NAME"
+        # ],
+        # [
+        #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF2_DAPI/images",
+        #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF2_DAPI/predictions/$MODEL_NAME"
+        # ],
+        [
+            "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/images",
+            "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/predictions/$MODEL_NAME"
+        ],
     ]
 
 
