@@ -156,9 +156,13 @@ if __name__ == "__main__":
         #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF2_DAPI/predictions/$MODEL_NAME"
         # ],
         [
-            "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/images",
-            "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/predictions/$MODEL_NAME"
+            "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF3_DAPI/images",
+            "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF3_DAPI/predictions/$MODEL_NAME"
         ],
+        # [
+        #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_LCprocBF2_DAPI/images",
+        #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_LCprocBF2_DAPI/predictions/$MODEL_NAME"
+        # ],
     ]
 
 

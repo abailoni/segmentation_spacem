@@ -77,7 +77,9 @@ if __name__ == "__main__":
         # "/scratch/bailoni/datasets/martijn/examplesMacrophages/preprocessed_BR_ch2",
         # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF1_DAPI/predictions/",
         # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF2_DAPI/predictions/",
-        "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/predictions/",
+        # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF1_DAPI/predictions/",
+        # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_LCprocBF2_DAPI/predictions/",
+        "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF3_DAPI/predictions/",
     ]
 
 

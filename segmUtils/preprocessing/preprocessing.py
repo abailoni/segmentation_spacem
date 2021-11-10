@@ -5,6 +5,7 @@ import os
 import json, cv2, random
 import shutil
 
+from segmUtils.preprocessing.convert_to_cellpose_style import convert_to_cellpose_style
 from segmfriends.utils.various import check_dir_and_create
 try:
     from ..LIVECellutils import preprocessing as preprocess_LIVEcell
@@ -185,7 +186,8 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
     return idx_images
 
 
-def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_ch1=None):
+def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_ch1=None,
+                          preprocess_ch0=False):
     csv_path_path = zarr_group_path.replace(".zarr", ".csv")
     assert os.path.exists(csv_path_path), "No csv file associated to zarr dataset!"
     check_dir_and_create(out_dir)
@@ -195,6 +197,11 @@ def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_
     for i, out_name in enumerate(filenames["Out filename"]):
         # Get main channel:
         img = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch0, apply_valid_mask=True, z_slice=i)[..., None]
+
+        if preprocess_ch0:
+            img = convert_to_cellpose_style(img)
+            # img = preprocess_LIVEcell.preprocess(img)
+            # img = img[..., None] if len(img.shape) == 2 else img
 
         # Convert to BGR, where green is ch0 and red is ch1:
         img = np.pad(img, pad_width=((0,0), (0,0), (1,1)), mode="constant")
@@ -282,16 +289,26 @@ if __name__ == "__main__":
     #                        cellpose_ch1="DAPI"
     # )
 
+    from_zarr_to_cellpose(zarr_out,
+                          "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF3_DAPI/images",
+                          preprocess_ch0=True,
+                           cellpose_ch0="BF3",
+                           cellpose_ch1="DAPI"
+    )
+
     # from_zarr_to_cellpose(zarr_out,
-    #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF2_DAPI/images",
+    #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_LCprocBF2_DAPI/images",
+    #                       preprocess_ch0=True,
     #                        cellpose_ch0="BF2",
     #                        cellpose_ch1="DAPI"
     # )
-    from_zarr_to_cellpose(zarr_out,
-                          "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/images",
-                           cellpose_ch0="GFP",
-                           cellpose_ch1="DAPI"
-    )
+
+
+    # from_zarr_to_cellpose(zarr_out,
+    #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/images",
+    #                        cellpose_ch0="GFP",
+    #                        cellpose_ch1="DAPI"
+    # )
 
 
 
