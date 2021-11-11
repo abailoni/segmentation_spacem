@@ -5,6 +5,9 @@ from inferno.io.volumetric.volumetric_utils import slidingwindowslices
 import os
 import json, cv2, random
 import imageio
+import PIL
+PIL.Image.MAX_IMAGE_PIXELS = None
+
 import shutil
 from copy import deepcopy
 import pandas as pd
@@ -79,7 +82,8 @@ if __name__ == "__main__":
         # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF2_DAPI/predictions/",
         # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF1_DAPI/predictions/",
         # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_LCprocBF2_DAPI/predictions/",
-        "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF3_DAPI/predictions/",
+        # "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF3_DAPI/predictions/",
+        "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI_full_images/predictions/",
     ]
 
 

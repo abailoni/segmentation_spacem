@@ -266,22 +266,23 @@ if __name__ == "__main__":
     #                        rename_unique=True, max_nb_crops_per_image=1, BF_ch_filter="_c0", DAPI_ch_filter="_c2", delete_out_dir=True)
 
     # New setup for Veronika images:
-    zarr_out = "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data_cropped.zarr"
-    # convert_images_to_zarr_dataset(
-    #     "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data",
-    #     zarr_out,
-    #     projectdir_depth=-4,
-    #     precrop="5400:7600, 5900:9300",
-    #     # max_nb_images=1,
-    #     general_filter="fused_tp_",
-    #     mCherry="_ch_0",
-    #     GFP="_ch_1",
-    #     DAPI="_ch_2",
-    #     BF1="_ch_3",
-    #     BF2="_ch_4",
-    #     BF3="_ch_5",
-    #     verbose=True
-    # )
+    # zarr_out = "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data_cropped.zarr"
+    zarr_out = "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data.zarr"
+    convert_images_to_zarr_dataset(
+        "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data",
+        zarr_out,
+        projectdir_depth=-4,
+        # precrop="5400:7600, 5900:9300",
+        # max_nb_images=1,
+        general_filter="fused_tp_",
+        mCherry="_ch_0",
+        GFP="_ch_1",
+        DAPI="_ch_2",
+        BF1="_ch_3",
+        BF2="_ch_4",
+        BF3="_ch_5",
+        verbose=True
+    )
 
     # from_zarr_to_cellpose(zarr_out,
     #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_BF1_DAPI/images",
@@ -289,12 +290,19 @@ if __name__ == "__main__":
     #                        cellpose_ch1="DAPI"
     # )
 
-    from_zarr_to_cellpose(zarr_out,
-                          "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF3_DAPI/images",
-                          preprocess_ch0=True,
-                           cellpose_ch0="BF3",
-                           cellpose_ch1="DAPI"
-    )
+    # from_zarr_to_cellpose(zarr_out,
+    #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_procBF3_DAPI/images",
+    #                       preprocess_ch0=True,
+    #                        cellpose_ch0="BF3",
+    #                        cellpose_ch1="DAPI"
+    # )
+
+    # from_zarr_to_cellpose(zarr_out,
+    #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_mCherry/images",
+    #                       preprocess_ch0=False,
+    #                       cellpose_ch0="mCherry",
+    #                       # cellpose_ch1="DAPI"
+    #                       )
 
     # from_zarr_to_cellpose(zarr_out,
     #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_LCprocBF2_DAPI/images",
@@ -304,12 +312,11 @@ if __name__ == "__main__":
     # )
 
 
-    # from_zarr_to_cellpose(zarr_out,
-    #                       "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI/images",
-    #                        cellpose_ch0="GFP",
-    #                        cellpose_ch1="DAPI"
-    # )
-
+    from_zarr_to_cellpose(zarr_out,
+                          "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI_full_images/images",
+                           cellpose_ch0="GFP",
+                           cellpose_ch1="DAPI"
+    )
 
 
     print("Done")
