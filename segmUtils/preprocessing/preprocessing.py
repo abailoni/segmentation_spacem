@@ -267,9 +267,9 @@ if __name__ == "__main__":
 
     # New setup for Veronika images:
     # zarr_out = "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data_cropped.zarr"
-    zarr_out = "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data.zarr"
+    zarr_out = "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/fixed_data.zarr"
     convert_images_to_zarr_dataset(
-        "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data",
+        "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/fixed_data",
         zarr_out,
         projectdir_depth=-4,
         # precrop="5400:7600, 5900:9300",
@@ -278,9 +278,9 @@ if __name__ == "__main__":
         mCherry="_ch_0",
         GFP="_ch_1",
         DAPI="_ch_2",
-        BF1="_ch_3",
-        BF2="_ch_4",
-        BF3="_ch_5",
+        # BF1="_ch_3",
+        # BF2="_ch_4",
+        # BF3="_ch_5",
         verbose=True
     )
 
@@ -313,7 +313,7 @@ if __name__ == "__main__":
 
 
     from_zarr_to_cellpose(zarr_out,
-                          "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI_full_images/images",
+                          "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI_full_images_fixed/images",
                            cellpose_ch0="GFP",
                            cellpose_ch1="DAPI"
     )

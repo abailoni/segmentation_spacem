@@ -10,8 +10,8 @@ import numpy as np
 
 def export_images_from_zarr(main_out_dir,
                             csv_image_data_path,
-                            filter_main_csv_image,
-                            datasets_to_export
+                            datasets_to_export,
+                            filter_main_image_in_csv="_ch_0",
                             # inner_path,
                             # z_slice=None,
                             # apply_valid_mask=False,
@@ -27,8 +27,8 @@ def export_images_from_zarr(main_out_dir,
             rel_folder_path, filename = os.path.split(path_main_img)
 
             filename, extension = os.path.splitext(filename)
-            assert filter_main_csv_image in filename, "Filter '{}' not found in image {}".format(filter_main_csv_image, path_main_img)
-            out_filename = filename.replace(filter_main_csv_image, dataset["out_filter"])
+            assert filter_main_image_in_csv in filename, "Filter '{}' not found in image {}".format(filter_main_image_in_csv, path_main_img)
+            out_filename = filename.replace(filter_main_image_in_csv, dataset["out_filter"])
             out_dir = os.path.join(main_out_dir, rel_folder_path)
             check_dir_and_create(out_dir)
             out_path = os.path.join(out_dir, out_filename + ".tif")
@@ -42,7 +42,6 @@ if __name__ == "__main__":
     # Test the function:
     export_images_from_zarr("/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/exported_results",
                             "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data.csv",
-                            "_ch_0",
                             [{"z_path": "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_GFP_DAPI_full_images/predictions/predictions.zarr",
                              "inner_path": "cyto2_diamEst",
                              "out_filter": "_cell_segm"},

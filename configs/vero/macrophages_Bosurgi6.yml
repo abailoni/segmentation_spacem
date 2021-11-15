@@ -1,0 +1,59 @@
+# TODO:
+#     - replace scratch folder path with placeholder...?
+
+methods_to_run:
+#  - preprocessing
+#  - generate_cellpose_input
+  - cellpose_inference
+  - export_results
+
+
+input_paths:
+  main_data_dir: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data" # TODO: update
+
+
+preprocessing:
+  data_zarr_group: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/debug_unified_experiment.zarr"
+  convert_images_to_zarr_dataset_kwargs:
+    projectdir_depth: -4 #TODO: update
+    precrop: "5400:7600, 5900:9300" #TODO: update
+    max_nb_images: 1 #TODO: update
+    general_filter: "fused_tp_"
+    mCherry: "_ch_0"
+    GFP: "_ch_1"
+    DAPI: "_ch_2"
+#    BF1: "_ch_3"
+#    BF2: "_ch_4"
+#    BF3: "_ch_5"
+    verbose: True
+
+generate_cellpose_input:
+  generate_for:
+    - "cellpose_inference"
+  convert_to_cellpose_kwargs:
+    cellpose_ch0: "GFP"
+    cellpose_ch1: "DAPI"
+
+
+cellpose_inference:
+  input_dir: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_input_images/GFP_DAPI_debug_unified_experiment"
+  multiple_cellpose_inference_kwargs:
+    estimate_diameter: [False]
+    overwrite_estimate_diameter:
+      cyto2: True
+    save_npy: False
+    first_ch: 2
+    second_ch: 1
+    mask_filter: "_masks"
+
+    tested_models:
+      cyto2: "cyto2"
+      # cleaned_finetuned_LIVECell_v1: "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_08_49.114912"
+
+
+export_results:
+  export_images_from_zarr_kwargs:
+    filter_main_image_in_csv: "_ch_0"
+    datasets_to_export:
+      - {inner_path: "cyto2_diamEst", out_filter: "_cell_segm"}
+      - {inner_path: "sem_segmentation", out_filter: "_cell_type"}
