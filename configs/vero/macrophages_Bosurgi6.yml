@@ -5,6 +5,8 @@ methods_to_run:
 #  - preprocessing
 #  - generate_cellpose_input
   - cellpose_inference
+  - convert_multiple_cellpose_output_to_zarr # Not needed if inference is done
+  - compute_semantic_segm
   - export_results
 
 
@@ -49,6 +51,14 @@ cellpose_inference:
     tested_models:
       cyto2: "cyto2"
       # cleaned_finetuned_LIVECell_v1: "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_08_49.114912"
+
+compute_semantic_segm:
+  compute_semantic_segm_kwargs:
+    red_channel_name: "mCherry"
+    red_ch_thresh: 13 # How high the red-signal should be to detect a red segment
+    red_ch_cell_mean_thresh: 2. # How high the avg red-signal should be over a cell to label it as "infected"
+    instance_segm_to_process:
+      - {instance_segm_path: "cyto2_diamEst", out_zarr_inner_path: "sem_segmentation"}
 
 
 export_results:

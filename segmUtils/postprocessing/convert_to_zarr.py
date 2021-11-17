@@ -44,18 +44,26 @@ def convert_segmentations_to_zarr(pred_dir, out_zarr_path,
 
     assert saved_images, "No segmentations found in given folder"
 
-def convert_multiple_cellpose_output_to_zarr(main_pred_directory):
-    out_zarr_group_path = os.path.join(main_pred_directory, "predictions_collected.zarr")
+def convert_multiple_cellpose_output_to_zarr(main_pred_directory, delete_previous=True):
+    zarr_filename = "predictions_collected.zarr"
+    out_zarr_group_path = os.path.join(main_pred_directory, zarr_filename)
+
+    if delete_previous:
+        shutil.rmtree(out_zarr_group_path)
+
+    collected_model_names = []
     for root, dirs, files in os.walk(main_pred_directory):
         for model_name in dirs:
-            convert_segmentations_to_zarr(
-                pred_dir=os.path.join(main_pred_directory, model_name),
-                out_zarr_path=out_zarr_group_path,
-                model_name=model_name
-            )
+            if model_name != zarr_filename:
+                convert_segmentations_to_zarr(
+                    pred_dir=os.path.join(main_pred_directory, model_name),
+                    out_zarr_path=out_zarr_group_path,
+                    model_name=model_name
+                )
+            collected_model_names.append(model_name)
         # Only check the directory top-level:
         break
-    return out_zarr_group_path
+    return out_zarr_group_path, collected_model_names
 
 
 if __name__ == "__main__":

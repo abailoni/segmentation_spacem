@@ -5,6 +5,7 @@ import sys
 import json
 import numpy as np
 from segmUtils.io.export_images_from_zarr import export_images_from_zarr
+from segmfriends.speedrun_exps.utils import process_speedrun_sys_argv
 
 from speedrun import BaseExperiment
 from segmfriends.utils.paths import get_vars_from_argv_and_pop
@@ -74,9 +75,15 @@ class CellposeBaseExperiment(BaseExperiment):
                                                    **multiple_cellpose_inference_kwargs)
 
         # Collect predictions from all models and combine all images in a single zarr file:
-        zarr_path_predictions = convert_multiple_cellpose_output_to_zarr(
+        self.convert_multiple_cellpose_output_to_zarr()
+
+    def convert_multiple_cellpose_output_to_zarr(self):
+        zarr_path_predictions, collected_model_names = convert_multiple_cellpose_output_to_zarr(
             os.path.join(self.experiment_directory, "cellpose_predictions"))
+
+        # Save data in config file for later use:
         self.set("cellpose_inference/zarr_path_predictions", zarr_path_predictions)
+        self.set("cellpose_inference/names_predicted_models", collected_model_names)
 
     def export_results(self):
         """
@@ -116,33 +123,8 @@ class CellposeBaseExperiment(BaseExperiment):
 
 
 if __name__ == '__main__':
-    print(sys.argv[1])
-
     source_path = os.path.dirname(os.path.realpath(__file__))
+    sys.argv = process_speedrun_sys_argv(sys.argv, source_path)
 
-    collected_paths, sys.argv = get_vars_from_argv_and_pop(sys.argv,
-                                                           config_path=os.path.join(source_path, '../../../configs'),
-                                                           exp_path="/scratch/bailoni/projects/cellpose_projects")
-    config_path = collected_paths["config_path"]
-    experiments_path = collected_paths["exp_path"]
-
-    sys.argv[1] = os.path.join(experiments_path, sys.argv[1])
-    if '--inherit' in sys.argv:
-        i = sys.argv.index('--inherit') + 1
-        if sys.argv[i].endswith(('.yml', '.yaml')):
-            sys.argv[i] = os.path.join(config_path, sys.argv[i])
-        else:
-            sys.argv[i] = os.path.join(experiments_path, sys.argv[i])
-    if '--update' in sys.argv:
-        i = sys.argv.index('--update') + 1
-        sys.argv[i] = os.path.join(config_path, sys.argv[i])
-    i = 0
-    while True:
-        if f'--update{i}' in sys.argv:
-            ind = sys.argv.index(f'--update{i}') + 1
-            sys.argv[ind] = os.path.join(config_path, sys.argv[ind])
-            i += 1
-        else:
-            break
     cls = CellposeBaseExperiment
     cls().run()
