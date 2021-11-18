@@ -4,8 +4,12 @@ import sys
 
 import json
 import numpy as np
+import pandas
+
 from segmUtils.io.export_images_from_zarr import export_images_from_zarr
+from segmUtils.postprocessing.compute_scores import compute_scores
 from segmfriends.speedrun_exps.utils import process_speedrun_sys_argv
+from segmfriends.utils import check_dir_and_create
 
 from speedrun import BaseExperiment
 from segmfriends.utils.paths import get_vars_from_argv_and_pop
@@ -73,6 +77,7 @@ class CellposeBaseExperiment(BaseExperiment):
 
             # Convert images from zarr to cellpose format:
             spacem_preproc.from_zarr_to_cellpose(data_zarr_group, out_dir=cellpose_input_dir,
+                                                 delete_previous=True,
                                                  **convert_to_cellpose_kwargs)
 
     def cellpose_inference(self):
@@ -107,6 +112,7 @@ class CellposeBaseExperiment(BaseExperiment):
         csv_config_path = input_zarr_group_path.replace(".zarr", ".csv")
 
         export_dir = os.path.join(self.experiment_directory, "exported_results")
+        self.set("export_results/export_path", export_dir)
 
         # Insert zarr path of the prediction file in the export parameters:
         assert "datasets_to_export" in export_images_from_zarr_kwargs
@@ -118,7 +124,61 @@ class CellposeBaseExperiment(BaseExperiment):
         export_images_from_zarr(export_dir,
                                 csv_config_path,
                                 datasets_to_export=datasets_to_export,
+                                delete_previous=True,
                                 **export_images_from_zarr_kwargs)
+
+    def compute_scores(self):
+        datasets_to_evaluate = self.get("compute_scores/datasets_to_evaluate", ensure_exists=True)
+        models_to_evaluate = self.get("compute_scores/models_to_evaluate", ensure_exists=True)
+        export_path = self.get("export_results/export_path", ensure_exists=True)
+
+        collected_scores_names = None
+        collected_scores = []
+        # TODO: add support for global config
+        for idx, export_name in enumerate(datasets_to_evaluate):
+            export_kwargs = self.get("compute_scores/{}".format(export_name), ensure_exists=True)
+            dataset_name = export_kwargs.pop("dataset_name")
+            export_kwargs["pred_extension"] = ".tif"
+            export_kwargs["pred_dir"] = pred_dir = os.path.join(export_path, dataset_name)
+            AP_thresholds = export_kwargs["AP_thresholds"]
+            for model_name in models_to_evaluate:
+                scores = compute_scores(**export_kwargs)
+
+                # Prepare scores to be written to csv file:
+                scores_names = []
+                new_collected_scores = []
+                for sc_name in scores:
+                    score = scores[sc_name]
+                    assert len(score.shape) == 1
+                    for AP_thr_indx, scr in enumerate(score):
+                        new_collected_scores.append(scr)
+                        if collected_scores_names is None:
+                            if score.shape[0] == 1:
+                                scores_names.append(sc_name)
+                            else:
+                                assert score.shape[0] == len(AP_thresholds)
+                                scores_names.append("{}_{}".format(sc_name, AP_thresholds[AP_thr_indx]))
+                if collected_scores_names is None:
+                    collected_scores_names = deepcopy(scores_names)
+                basedir = os.path.basename(os.path.normpath(pred_dir))
+
+                if "_noDiamEst" in model_name:
+                    estimate_diam = 0
+                elif "_diamEst" in model_name:
+                    estimate_diam = 1
+                else:
+                    estimate_diam = None
+
+                collected_scores.append([basedir, model_name, estimate_diam] + new_collected_scores)
+                print("Done {}, {}".format(model_name, pred_dir))
+
+        # Create output score directory:
+        out_score_dir = os.path.join(self.experiment_directory, "scores")
+        check_dir_and_create(out_score_dir)
+        df = pandas.DataFrame(collected_scores,
+                          columns=['Data type', 'Model name', 'Estimated cell size'] + collected_scores_names)
+        df.sort_values(by=['Data type', 'aji'], inplace=True, ascending=False)
+        df.to_csv(os.path.join(out_score_dir, "scores.csv"))
 
     # ------------------------------------------------------------------------------------------------------
     # Basic modifications to change the name of the configuration file from 'train_config' to 'main_config'

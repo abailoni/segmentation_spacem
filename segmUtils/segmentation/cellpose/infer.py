@@ -29,6 +29,9 @@ def multiple_cellpose_inference(tested_models,
 
             for input_dir, out_dir in dirs_to_process:
                 out_dir = out_dir.replace("$MODEL_NAME", model_name)
+                # Delete previous predictions:
+                if os.path.exists(out_dir):
+                    shutil.rmtree(out_dir)
                 # Create model directory:
                 check_dir_and_create(os.path.dirname(os.path.normpath(out_dir)))
                 # Create out dir:

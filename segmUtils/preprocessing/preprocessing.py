@@ -258,16 +258,19 @@ def apply_preprocessing(preprocessing_function, z_group_path, input_zarr_dataset
 
 
 def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_ch1=None,
-                          preprocess_ch0=False):
+                          preprocess_ch0=False, delete_previous=False):
     csv_path_path = zarr_group_path.replace(".zarr", ".csv")
     assert os.path.exists(csv_path_path), "No csv file associated to zarr dataset!"
+
+    if delete_previous and os.path.exists(out_dir):
+        shutil.rmtree(out_dir)
     check_dir_and_create(out_dir)
 
     filenames = pandas.read_csv(csv_path_path)
 
     for i, out_name in enumerate(filenames["Out filename"]):
         # Get main channel:
-        img = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch0, apply_valid_mask=True, z_slice=i)[..., None]
+        img = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch0, z_slice=i)[..., None]
 
         if preprocess_ch0:
             img = convert_to_cellpose_style(img)
@@ -279,7 +282,13 @@ def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_
 
         # Get ch1, if needed:
         if cellpose_ch1 is not None:
-            img[...,2] = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch1, apply_valid_mask=True, z_slice=i)
+            img[...,2] = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch1, z_slice=i)
+
+        # Crop to the original size:
+        if "shape_x" in filenames:
+            img = img[:filenames["shape_x"][i]]
+        if "shape_y" in filenames:
+            img = img[:, :filenames["shape_y"][i]]
 
         # Write:
         cv2.imwrite(os.path.join(out_dir, out_name), img)

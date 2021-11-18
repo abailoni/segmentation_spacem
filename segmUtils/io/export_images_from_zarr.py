@@ -1,4 +1,5 @@
 import os.path
+import shutil
 
 import zarr
 from segmfriends.io.zarr import load_array_from_zarr_group
@@ -12,6 +13,7 @@ def export_images_from_zarr(main_out_dir,
                             csv_image_data_path,
                             datasets_to_export,
                             filter_main_image_in_csv="_ch_0",
+                            delete_previous=False,
                             # inner_path,
                             # z_slice=None,
                             # apply_valid_mask=False,
@@ -43,6 +45,9 @@ def export_images_from_zarr(main_out_dir,
             assert main_ch_filter in filename, "Filter '{}' not found in image {}".format(main_ch_filter, path_main_img)
             out_filename = filename.replace(main_ch_filter, dataset["out_filter"])
             out_dir = os.path.join(main_out_dir, rel_folder_path) if dataset_name is None else os.path.join(main_out_dir, dataset_name, rel_folder_path)
+
+            if delete_previous and os.path.exists(out_dir):
+                shutil.rmtree(out_dir)
             check_dir_and_create(out_dir)
             out_path = os.path.join(out_dir, out_filename + ".tif")
             array = load_array_from_zarr_group(dataset["z_path"],

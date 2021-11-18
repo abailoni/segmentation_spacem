@@ -1,0 +1,3 @@
+generate_cellpose_input:
+  convert_to_cellpose_kwargs:
+    preprocess_ch0: False

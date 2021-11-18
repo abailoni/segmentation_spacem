@@ -15,7 +15,10 @@ from segmfriends.utils.various import check_dir_and_create
 
 def compute_scores(pred_dir, GT_dir,
                            pred_filter="_cp_masks", GT_filter="_masks",
-                            AP_thresholds=(0.5,0.75,0.9)):
+                            AP_thresholds=(0.5,0.75,0.9),
+                   only_look_at_top_level=True,
+                   pred_extension=".png",
+                   GT_extension=".png",):
     scores = {
         'aji': [],
         'ap': [],
@@ -29,16 +32,22 @@ def compute_scores(pred_dir, GT_dir,
     for root, dirs, files in os.walk(pred_dir):
         for filename in files:
             file_basename, file_extension = os.path.splitext(filename)
-            assert file_extension == ".png", "Atm, pred and GT masks are expected to be in png format"
             if file_basename.endswith(pred_filter):
+                if pred_extension is not None:
+                    if pred_extension != file_extension:
+                        continue
                 # Look for corresponding GT masks:
-                GT_masks_filename = filename.replace(pred_filter, GT_filter)
-                GT_masks_path = os.path.join(GT_dir, GT_masks_filename)
-                assert os.path.exists(GT_masks_path), "GT file not found!"
+                GT_masks_filename = file_basename.replace(pred_filter, GT_filter) + GT_extension
+                if only_look_at_top_level:
+                    GT_masks_path = os.path.join(GT_dir, GT_masks_filename)
+                else:
+                    GT_masks_path = os.path.join(GT_dir, os.path.relpath(root, pred_dir), GT_masks_filename)
+                assert os.path.exists(GT_masks_path), "GT file not found: {}".format(GT_masks_path)
 
                 # Load masks:
                 pred_masks = imageio.imread(os.path.join(root, filename))
                 GT_masks = imageio.imread(GT_masks_path)
+                assert pred_masks.shape == GT_masks.shape, "pred: {}, GT: {}".format(pred_masks.shape, GT_masks.shape)
 
                 # availableFeatures = vigra.analysis.supportedRegionFeatures(pred_masks.astype('float32'), pred_masks.astype('uint32'))
                 # skeletonFeatures = vigra.analysis.extractSkeletonFeatures(pred_masks.astype('uint32'), pruning_threshold=0.2)
@@ -75,7 +84,8 @@ def compute_scores(pred_dir, GT_dir,
                 #     break
 
         # Only look in top directory
-        break
+        if only_look_at_top_level:
+            break
     # Average scores:
     assert len(scores['aji']) > 0, "No images found in given folders"
     for score_type in scores:
