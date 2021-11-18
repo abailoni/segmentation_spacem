@@ -41,14 +41,22 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
                                    rename_unique=True, max_nb_crops_per_image=None,
                                    general_filter=None,
                                    precrop=None,
+                                   dataset_name=None,
+                                   delete_previous_zarr=True,
                                    verbose=False, **channels_filters):
     """
     :param channels_filters: Dictionary of channel names and associated ending-filename-filters. For example:
-                {BF: "_ch0", DAPI: "_ch1"}. If all images should be prccessed as single channel, a None filter can be
-                passed, e.g. {main_channel_name: None}
+                {BF: "_ch0", DAPI: "_ch1"}. If all images should be processed as single channel, a None filter can be
+                passed, e.g. {main_channel_name: None}.
+                If a channel should be saved as zeros (to keep consistency with other datasets), pass "$ZERO" as a
+                filter, e.g. {BF: "_c0", DAPI: "$ZERO"}. TODO: not compatible with None main channel at the moment.
+    :param dataset_name: used for when multiple datasets are inserted in the same zarr file
+    :param delete_previous_zarr: by default, set to True delete previous to avoid inconsistencies. Can be set to False,
+            but use with care.
     """
+    # TODO: remove valid mask from zarr file (now stored in csv)
     # Delete previous images in the zarr group:
-    if os.path.exists(out_zarr_path):
+    if os.path.exists(out_zarr_path) and delete_previous_zarr:
         shutil.rmtree(out_zarr_path)
 
     assert len(channels_filters), "No channel names passed!"
@@ -58,6 +66,8 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
 
     main_ch_name = [ch_name for ch_name in channels_filters][0]
     main_ch_filter = channels_filters[main_ch_name]
+
+    dataset_name = "" if dataset_name is None else dataset_name
 
     def get_image_paths():
         def read_image(img_path):
@@ -93,22 +103,28 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
 
                     # Save original image path:
                     new_image_paths = []
-                    new_path_headers = ["Input dir", main_ch_name]
-                    input_image_paths = [input_dir_path, os.path.relpath(main_ch_path, input_dir_path)]
+                    new_path_headers = ["Input dir", "Dataset name", main_ch_name]
+                    input_image_paths = [input_dir_path, dataset_name, os.path.relpath(main_ch_path, input_dir_path)]
 
                     for ch_name, ch_filter in channels_filters.items():
                         if ch_name != main_ch_name:
-                            # Load extra channel and save it to zarr dataset:
-                            image_path = os.path.join(root, filename.replace(main_ch_filter, ch_filter))
-                            if not os.path.exists(image_path):
-                                if ensure_all_channel_existance:
-                                    raise ValueError("Channel {} not found for image {} in {}".format(ch_name, filename, root))
-                                else:
-                                    continue
-                            new_ch_img = read_image(image_path)
-                            assert new_ch_img.shape == shape
+                            if ch_filter == "$ZERO":
+                                pass
+                                new_ch_img = np.zeros_like(main_ch_img)
+                                new_image_path = ""
+                            else:
+                                # Load extra channel and save it to zarr dataset:
+                                image_path = os.path.join(root, filename.replace(main_ch_filter, ch_filter))
+                                if not os.path.exists(image_path):
+                                    if ensure_all_channel_existance:
+                                        raise ValueError("Channel {} not found for image {} in {}".format(ch_name, filename, root))
+                                    else:
+                                        continue
+                                new_ch_img = read_image(image_path)
+                                assert new_ch_img.shape == shape
+                                new_image_path = os.path.relpath(image_path, input_dir_path)
                             zarr_kwargs[ch_name] = new_ch_img
-                            input_image_paths.append(os.path.relpath(image_path, input_dir_path))
+                            input_image_paths.append(new_image_path)
                             new_path_headers.append(ch_name)
 
                     if verbose:
@@ -141,8 +157,7 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
                             # Check if we should stop here:
                             if max_nb_images is not None:
                                 if idx_images - starting_index >= max_nb_images:
-                                    all_image_paths += new_image_paths
-                                    return all_image_paths, idx_images, path_headers
+                                    break
                             if max_nb_crops_per_image is not None:
                                 if slice_idx >= max_nb_crops_per_image:
                                     break
@@ -155,11 +170,11 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
                             idx_images += 1
 
                             # Save out image paths:
+                            cropped_shape = cropped_zarr_kwargs[main_ch_name].shape
                             new_image_paths.append(
-                                input_image_paths + [out_filename]
+                                input_image_paths + [out_filename, cropped_shape[0], cropped_shape[1]]
                             )
-                            new_path_headers.append("Out filename")
-                            path_headers = new_path_headers if path_headers is None else path_headers
+
                     else:
                         assert crop_size is None, "When applying crops, image names must be unique"
                         out_name = "{}.png".format(file_basename)
@@ -168,12 +183,19 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
                         idx_images += 1
 
                         # Save out image paths:
+                        cropped_shape = zarr_kwargs[main_ch_name].shape
                         new_image_paths.append(
-                            input_image_paths + [out_name]
+                            input_image_paths + [out_name, cropped_shape[0], cropped_shape[1]]
                         )
-                        new_path_headers.append("Out filename")
-                        path_headers = new_path_headers if path_headers is None else path_headers
+                    new_path_headers += ["Out filename", "shape_x", "shape_y"]
+                    path_headers = new_path_headers if path_headers is None else path_headers
                     all_image_paths += new_image_paths
+
+                    # Check if we should stop here:
+                    if max_nb_images is not None:
+                        if idx_images - starting_index >= max_nb_images:
+                            return all_image_paths, idx_images, path_headers
+
         return all_image_paths, idx_images, path_headers
 
     all_image_paths, idx_images, path_headers = get_image_paths()
@@ -182,8 +204,57 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
     df = pandas.DataFrame(data=all_image_paths,
                           columns=path_headers)
     out_csv_file = out_zarr_path.replace(".zarr", ".csv")
+
+    # if file exists and I am not deleting previous, append:
+    if not delete_previous_zarr and os.path.exists(out_csv_file):
+        old_df = pandas.read_csv(out_csv_file)
+        df = pandas.concat([old_df, df])
+
     df.to_csv(out_csv_file, index=False)
     return idx_images
+
+
+def convert_multiple_dataset_to_zarr_group(out_zarr_path, channels_list, *multiple_kwargs):
+    # Make sure that channel specifications are consistent across all datasets:
+    for ch in channels_list:
+        for kwargs in multiple_kwargs:
+            assert "dataset_name" in kwargs, "Not all dataset names were specified"
+            assert ch in kwargs, "Channel specifications for '{}' not found in dataset '{}'".format(
+                ch, kwargs["dataset_name"]
+            )
+
+    # Process datasets one after the other and add them to the zarr group:
+    starting_index = 0
+    for i, kwargs  in enumerate(multiple_kwargs):
+        kwargs["starting_index"] = starting_index
+        kwargs["out_zarr_path"] = out_zarr_path
+        if i != 0:
+            kwargs["delete_previous_zarr"] = False
+        starting_index = convert_images_to_zarr_dataset(**kwargs)
+    return starting_index
+
+
+def apply_preprocessing(preprocessing_function, z_group_path, input_zarr_dataset="BF", out_zarr_dataset=None):
+    pass
+    #
+    # assert os.path.exists(z_group_path), "Zarr file does not exist: {}".format(z_group_path)
+    # z_group = zarr.open(z_group_path, mode="w+")
+    #
+    # # TODO: add option to load all together
+    # for i, out_name in enumerate(filenames["Out filename"]):
+    #     # Load the dataset:
+    #     data = zarr_utils.load_array_from_zarr_group(z_group_path, input_zarr_dataset, z_slice=i)
+    #     data = preprocessing_function(data)
+    #
+    #     # Convert to BGR, where green is ch0 and red is ch1:
+    #     img = np.pad(img, pad_width=((0,0), (0,0), (1,1)), mode="constant")
+    #
+    #     # Get ch1, if needed:
+    #     if cellpose_ch1 is not None:
+    #         img[...,2] = zarr_utils.load_array_from_zarr_group(z_group_path, cellpose_ch1, apply_valid_mask=True, z_slice=i)
+    #
+    #     # Write:
+    #     cv2.imwrite(os.path.join(out_dir, out_name), img)
 
 
 def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_ch1=None,

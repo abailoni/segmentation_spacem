@@ -23,18 +23,36 @@ def export_images_from_zarr(main_out_dir,
     for dataset in datasets_to_export:
         assert isinstance(dataset, dict)
         for i, image_data in all_image_data.iterrows():
-            path_main_img = image_data[1]
+            if "Dataset name" in image_data:
+                path_main_img = image_data[2]
+                dataset_name = image_data["Dataset name"]
+            else:
+                path_main_img = image_data[1]
+                dataset_name = None
             rel_folder_path, filename = os.path.split(path_main_img)
 
             filename, extension = os.path.splitext(filename)
-            assert filter_main_image_in_csv in filename, "Filter '{}' not found in image {}".format(filter_main_image_in_csv, path_main_img)
-            out_filename = filename.replace(filter_main_image_in_csv, dataset["out_filter"])
-            out_dir = os.path.join(main_out_dir, rel_folder_path)
+
+            # Get the filter for the main channel:
+            if isinstance(filter_main_image_in_csv, dict):
+                assert dataset_name is not None
+                main_ch_filter = filter_main_image_in_csv[dataset_name]
+            else:
+                main_ch_filter = filter_main_image_in_csv
+
+            assert main_ch_filter in filename, "Filter '{}' not found in image {}".format(main_ch_filter, path_main_img)
+            out_filename = filename.replace(main_ch_filter, dataset["out_filter"])
+            out_dir = os.path.join(main_out_dir, rel_folder_path) if dataset_name is None else os.path.join(main_out_dir, dataset_name, rel_folder_path)
             check_dir_and_create(out_dir)
             out_path = os.path.join(out_dir, out_filename + ".tif")
             array = load_array_from_zarr_group(dataset["z_path"],
                                                dataset["inner_path"],
                                                z_slice=i)
+            # Apply original crop, if any:
+            if "shape_x" in image_data:
+                array = array[:image_data["shape_x"]]
+            if "shape_y" in image_data:
+                array = array[:,:image_data["shape_y"]]
             write_segm_to_file(out_path, array)
 
 

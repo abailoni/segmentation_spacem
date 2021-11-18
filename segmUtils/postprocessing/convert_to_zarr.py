@@ -48,7 +48,7 @@ def convert_multiple_cellpose_output_to_zarr(main_pred_directory, delete_previou
     zarr_filename = "predictions_collected.zarr"
     out_zarr_group_path = os.path.join(main_pred_directory, zarr_filename)
 
-    if delete_previous:
+    if delete_previous and os.path.exists(out_zarr_group_path):
         shutil.rmtree(out_zarr_group_path)
 
     collected_model_names = []

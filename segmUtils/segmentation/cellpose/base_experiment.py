@@ -25,6 +25,14 @@ class CellposeBaseExperiment(BaseExperiment):
 
         self.auto_setup(update_git_revision=False)
 
+        # Replace some path placeholders:
+        # TODO: move to another place and generalize to the full config?
+        input_dir = self.get("cellpose_inference/input_dir")
+        if input_dir is not None:
+            if "$EXP_DIR" in input_dir:
+                input_dir = input_dir.replace("$EXP_DIR", self.experiment_directory)
+                self.set("cellpose_inference/input_dir", input_dir)
+
     def run(self):
         methods_to_run = self.get("methods_to_run", ensure_exists=True)
         assert isinstance(methods_to_run, list)
@@ -39,16 +47,20 @@ class CellposeBaseExperiment(BaseExperiment):
 
     def preprocessing(self):
         # Get run args and paths:
-        in_dir = self.get("input_paths/main_data_dir", ensure_exists=True)
         data_zarr_group = self.get("preprocessing/data_zarr_group", ensure_exists=True)
-        convert_images_to_zarr_dataset_kwargs = self.get("preprocessing/convert_images_to_zarr_dataset_kwargs",
-                                                         ensure_exists=True)
+        datasets_to_process = self.get("preprocessing/datasets_to_process", ensure_exists=True)
+        channels_to_process = self.get("preprocessing/channels_to_process", ensure_exists=True)
+        kwargs_collected = []
+        for dataset_name in datasets_to_process:
+            dataset_kwargs = self.get("preprocessing/{}".format(dataset_name), ensure_exists=True)
+            dataset_kwargs["dataset_name"] = dataset_name
+            kwargs_collected.append(dataset_kwargs)
 
         # Get files from directories, find unique names, and create a unified stacked zarr file (for better visualization):
-        # TODO: generalize to multiple imports from multiple folders
-        idx_images = spacem_preproc.convert_images_to_zarr_dataset(in_dir,
-                                                                   out_zarr_path=data_zarr_group,
-                                                                   **convert_images_to_zarr_dataset_kwargs)
+        nb_preprocessed_images = spacem_preproc.convert_multiple_dataset_to_zarr_group(data_zarr_group,
+                                                                                       channels_to_process,
+                                                                                       *kwargs_collected)
+        self.set("nb_preprocessed_images", nb_preprocessed_images)
 
     def generate_cellpose_input(self):
         # Get run args and paths:

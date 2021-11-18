@@ -10,13 +10,15 @@ methods_to_run:
   - export_results
 
 
-input_paths:
-  main_data_dir: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data" # TODO: update
-
-
 preprocessing:
   data_zarr_group: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/debug_unified_experiment.zarr"
-  convert_images_to_zarr_dataset_kwargs:
+  datasets_to_process: ["main_dataset"]
+  channels_to_process:
+    - mCherry
+    - GFP
+    - DAPI
+  main_dataset:
+    input_dir_path: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data" # TODO: update
     projectdir_depth: -4 #TODO: update
     precrop: "5400:7600, 5900:9300" #TODO: update
     max_nb_images: 1 #TODO: update

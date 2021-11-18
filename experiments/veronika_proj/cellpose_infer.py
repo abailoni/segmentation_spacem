@@ -78,7 +78,7 @@ class MacrophagesExperiment(CellposeBaseExperiment):
 
 if __name__ == '__main__':
     source_path = os.path.dirname(os.path.realpath(__file__))
-    sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_rel_path="../../configs")
+    sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_rel_path="./configs")
 
     cls = MacrophagesExperiment
     cls().run()
