@@ -22,6 +22,9 @@ def export_images_from_zarr(main_out_dir,
     all_image_data = pandas.read_csv(csv_image_data_path)
     assert isinstance(datasets_to_export, (tuple, list))
 
+    if delete_previous and os.path.exists(main_out_dir):
+        shutil.rmtree(main_out_dir)
+
     for dataset in datasets_to_export:
         assert isinstance(dataset, dict)
         for i, image_data in all_image_data.iterrows():
@@ -46,8 +49,6 @@ def export_images_from_zarr(main_out_dir,
             out_filename = filename.replace(main_ch_filter, dataset["out_filter"])
             out_dir = os.path.join(main_out_dir, rel_folder_path) if dataset_name is None else os.path.join(main_out_dir, dataset_name, rel_folder_path)
 
-            if delete_previous and os.path.exists(out_dir):
-                shutil.rmtree(out_dir)
             check_dir_and_create(out_dir)
             out_path = os.path.join(out_dir, out_filename + ".tif")
             array = load_array_from_zarr_group(dataset["z_path"],

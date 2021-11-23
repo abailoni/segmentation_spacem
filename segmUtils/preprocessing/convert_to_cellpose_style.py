@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-def convert_to_cellpose_style(input_image):
+def convert_to_cellpose_style(input_image, method="subtract"):
     # internal variables
     #   median_radius_raw = used in the background illumination pattern estimation.
     #       this radius should be larger than the radius of a single cell
@@ -41,18 +41,32 @@ def convert_to_cellpose_style(input_image):
     if len(background.shape) < len(output_image.shape):
         # Add back channel dimension:
         background = background[..., None]
-    output_image = background.astype('float') - output_image.astype('float')
-    # Or should I multiply...?
-    # output_image = output_image.astype('float') / background.astype('float')
+
+    # Take difference, abs value and move back again to [0, 255] interval:
+    if method == "subtract":
+        output_image = background.astype('float') - output_image.astype('float')
+        output_image = np.abs(output_image)
+    elif method == "multiply":
+        # Add small epsilon to avoid nan in the division:
+        background = background.astype("float32") + 0.01
+        output_image = output_image.astype('float') / background.astype('float')
+        # Move 1. to zero and take absolute max:
+        output_image -= 1.
+        output_image = np.abs(output_image)
+    elif method == "shift":
+        # Move 128. to zero and take absolute max:
+        output_image -= 128.
+        output_image = np.abs(output_image)
+    else:
+        raise NotImplementedError
+    output_image = output_image - output_image.min()
+    output_image = output_image / output_image.max() * 255.
 
     # TODO: add back?
-    # # clipping for zernike phase halo artifacts
+    # clipping for zernike phase halo artifacts
     # output_image[output_image > 180] = 180
     # output_image[output_image < 70] = 70
 
-    # Take abs value and move back again to [0, 255] interval:
-    output_image = np.abs(output_image)
-    output_image = output_image / output_image.max() * 255.
 
     output_image = output_image.astype('uint8')
 

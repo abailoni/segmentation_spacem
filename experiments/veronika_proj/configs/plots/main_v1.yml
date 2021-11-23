@@ -1,0 +1,41 @@
+plot_config:
+  plot_flows: False
+
+
+raw_config:
+  main_dataset:
+    dir: /scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original
+    filter: "_c0_img"
+    extension: ".tif"
+  alyona_cocultur:
+    dir: /scratch/bailoni/datasets/alyona/20210823_AB_DKFZCocultur_analysis
+    filter: "_c0"
+    extension: ".tif"
+  martijn_examples:
+    dir: /scratch/bailoni/datasets/martijn/CellSegmentationExamples
+    filter: "_c0"
+    extension: ".tif"
+
+experiment_config:
+  main_experiment_dir: /scratch/bailoni/projects/cellpose_projects
+  dataset_names:
+    - alex_labels
+    - alyona_cocultur
+    - martijn_examples
+  configs_to_plot:
+    - original
+    - fluo_subtract
+#    - fluo_multiply
+  global_config:
+    model_name: "cyto2_diamEst"
+    pred_extension: ".tif"
+    pred_filter: "_cell_segm"
+
+  fluo_subtract:
+    exp_name: fluo_subtract
+  fluo_multiply:
+    exp_name: fluo_multiply
+  original:
+    exp_name: no_preprocessing
+
+

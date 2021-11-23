@@ -14,36 +14,55 @@ except ImportError:
 
 import pandas
 import zarr
+import imageio
+from PIL import Image, ImageEnhance
 
 import segmfriends.io.zarr as zarr_utils
 import segmfriends.utils.various as var_utils
 
+def read_segmentation_from_file(img_path):
+    assert os.path.isfile(img_path), "Image {} not found".format(img_path)
+    img = imageio.imread(img_path)
+    return img
 
-def read_uint8_img(img_path):
-    img = cv2.imread(img_path)
-    # Sometimes some images are loaded in float and cannot be automatically converted to uint8:
-    if img is None:
-        img = cv2.imread(img_path, cv2.IMREAD_ANYDEPTH)
-        img = img - img.min()
-        img = (img / img.max() * 255.).astype('uint8')
+def read_uint8_img(img_path, add_all_channels_if_needed=True):
+    # TODO: rename and move to io module together with function exporting segmentation file
+    assert os.path.isfile(img_path), "Image {} not found".format(img_path)
 
-    if len(img.shape) == 2:
+    extension = os.path.splitext(img_path)[1]
+    if extension == ".tif" or extension == ".tiff":
+        img = cv2.imread(img_path)
+        # Sometimes some images are loaded in float and cannot be automatically converted to uint8:
+        if img is None:
+            img = cv2.imread(img_path, cv2.IMREAD_ANYDEPTH)
+            img = img - img.min()
+            img = (img / img.max() * 255.).astype('uint8')
+    elif extension == ".png":
+        img = imageio.imread(img_path)
+    else:
+        raise ValueError("Extension {} not supported".format(extension))
+    if len(img.shape) == 2 and add_all_channels_if_needed:
         # Add channel dimension:
         img = np.stack([img for _ in range(3)])
         img = np.rollaxis(img, axis=0, start=3)
-    assert len(img.shape) == 3 and img.shape[2] == 3, img.shape
+    # assert len(img.shape) == 3 and img.shape[2] == 3, img.shape
+
     return img
 
 
-def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None, projectdir_depth=None,
+def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size=None, projectdir_depth=None,
                                    starting_index=0, max_nb_images=None,
                                    ensure_all_channel_existance=True,
                                    rename_unique=True, max_nb_crops_per_image=None,
                                    general_filter=None,
+                                   folder_filter=None,
                                    precrop=None,
                                    dataset_name=None,
+                                   extension=None,
                                    delete_previous_zarr=True,
+                                   save_to_zarr=True,
                                    verbose=False, **channels_filters):
+    # TODO: give a better name (considering options to only get paths in a folder)
     """
     :param channels_filters: Dictionary of channel names and associated ending-filename-filters. For example:
                 {BF: "_ch0", DAPI: "_ch1"}. If all images should be processed as single channel, a None filter can be
@@ -54,10 +73,13 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
     :param delete_previous_zarr: by default, set to True delete previous to avoid inconsistencies. Can be set to False,
             but use with care.
     """
-    # TODO: remove valid mask from zarr file (now stored in csv)
-    # Delete previous images in the zarr group:
-    if os.path.exists(out_zarr_path) and delete_previous_zarr:
-        shutil.rmtree(out_zarr_path)
+    if save_to_zarr:
+        assert isinstance(out_zarr_path, str)
+
+        # TODO: remove valid mask from zarr file (now stored in csv)
+        # Delete previous images in the zarr group:
+        if os.path.exists(out_zarr_path) and delete_previous_zarr:
+            shutil.rmtree(out_zarr_path)
 
     assert len(channels_filters), "No channel names passed!"
 
@@ -90,6 +112,17 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
                     if general_filter is not None:
                         if general_filter not in file_basename:
                             continue
+
+                    # Check if we should skip this folder:
+                    if folder_filter is not None:
+                        if folder_filter not in root:
+                            continue
+
+                    # Check for correct extension of raw file:
+                    if extension is not None:
+                        if file_extension != extension:
+                            continue
+
                     # Ignore post-maldi images for the moment:
                     if "cropped_post_maldi_channels" in os.path.split(root)[1]:
                         continue
@@ -165,7 +198,8 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
                             # Apply crops:
                             cropped_zarr_kwargs = {zarr_key: data[crop_slc] for zarr_key, data in zarr_kwargs.items()}
                             # Write to zarr file:
-                            zarr_utils.append_arrays_to_zarr(out_zarr_path, add_array_dimensions=True, keep_valid_mask=True,
+                            if save_to_zarr:
+                                zarr_utils.append_arrays_to_zarr(out_zarr_path, add_array_dimensions=True, keep_valid_mask=True,
                                                   **cropped_zarr_kwargs)
                             idx_images += 1
 
@@ -178,7 +212,8 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
                     else:
                         assert crop_size is None, "When applying crops, image names must be unique"
                         out_name = "{}.png".format(file_basename)
-                        zarr_utils.append_arrays_to_zarr(out_zarr_path, add_array_dimensions=True, keep_valid_mask=True,
+                        if save_to_zarr:
+                            zarr_utils.append_arrays_to_zarr(out_zarr_path, add_array_dimensions=True, keep_valid_mask=True,
                                               **zarr_kwargs)
                         idx_images += 1
 
@@ -199,19 +234,25 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path, crop_size=None
         return all_image_paths, idx_images, path_headers
 
     all_image_paths, idx_images, path_headers = get_image_paths()
-    print("{} images saved in {}".format(idx_images, out_zarr_path))
+    if verbose:
+        print("{} images saved in {}".format(idx_images, out_zarr_path))
+
+    # TODO: add last column with precrop, or offsets
 
     df = pandas.DataFrame(data=all_image_paths,
                           columns=path_headers)
-    out_csv_file = out_zarr_path.replace(".zarr", ".csv")
+    if save_to_zarr:
+        out_csv_file = out_zarr_path.replace(".zarr", ".csv")
 
-    # if file exists and I am not deleting previous, append:
-    if not delete_previous_zarr and os.path.exists(out_csv_file):
-        old_df = pandas.read_csv(out_csv_file)
-        df = pandas.concat([old_df, df])
+        # if file exists and I am not deleting previous, append:
+        if not delete_previous_zarr and os.path.exists(out_csv_file):
+            old_df = pandas.read_csv(out_csv_file)
+            df = pandas.concat([old_df, df])
 
-    df.to_csv(out_csv_file, index=False)
-    return idx_images
+        df.to_csv(out_csv_file, index=False)
+        return idx_images
+    else:
+        return df
 
 
 def convert_multiple_dataset_to_zarr_group(out_zarr_path, channels_list, *multiple_kwargs):
@@ -258,7 +299,8 @@ def apply_preprocessing(preprocessing_function, z_group_path, input_zarr_dataset
 
 
 def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_ch1=None,
-                          preprocess_ch0=False, delete_previous=False):
+                          preprocess_ch0=False, delete_previous=False,
+                          enhance_image=False, enhance_factor=3):
     csv_path_path = zarr_group_path.replace(".zarr", ".csv")
     assert os.path.exists(csv_path_path), "No csv file associated to zarr dataset!"
 
@@ -268,12 +310,22 @@ def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_
 
     filenames = pandas.read_csv(csv_path_path)
 
+    def crop_to_original_size(img, img_specs):
+        # Crop to the original size:
+        if "shape_x" in img_specs:
+            img = img[:img_specs["shape_x"]]
+        if "shape_y" in img_specs:
+            img = img[:, :img_specs["shape_y"]]
+        return img
+
+
     for i, out_name in enumerate(filenames["Out filename"]):
         # Get main channel:
         img = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch0, z_slice=i)[..., None]
+        img = crop_to_original_size(img, filenames.iloc[i])
 
         if preprocess_ch0:
-            img = convert_to_cellpose_style(img)
+            img = convert_to_cellpose_style(img, method="subtract")
             # img = preprocess_LIVEcell.preprocess(img)
             # img = img[..., None] if len(img.shape) == 2 else img
 
@@ -282,13 +334,16 @@ def from_zarr_to_cellpose(zarr_group_path, out_dir, cellpose_ch0="BF", cellpose_
 
         # Get ch1, if needed:
         if cellpose_ch1 is not None:
-            img[...,2] = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch1, z_slice=i)
+            ch1 = zarr_utils.load_array_from_zarr_group(zarr_group_path, cellpose_ch1, z_slice=i)
+            img[...,2] = crop_to_original_size(ch1, filenames.iloc[i])
 
-        # Crop to the original size:
-        if "shape_x" in filenames:
-            img = img[:filenames["shape_x"][i]]
-        if "shape_y" in filenames:
-            img = img[:, :filenames["shape_y"][i]]
+        if enhance_image:
+            pil_img = Image.fromarray(img)
+            enhancer = ImageEnhance.Brightness(pil_img)
+            pil_img_out = enhancer.enhance(enhance_factor)
+            img = np.array(pil_img_out)
+
+
 
         # Write:
         cv2.imwrite(os.path.join(out_dir, out_name), img)

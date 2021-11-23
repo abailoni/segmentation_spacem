@@ -19,15 +19,35 @@ from segmUtils.segmentation.cellpose import infer as cellpose_infer
 from segmUtils.postprocessing.convert_to_zarr import convert_segmentations_to_zarr, convert_multiple_cellpose_output_to_zarr
 
 
-class CellposeBaseExperiment(BaseExperiment):
+class CoreSpaceMExperiment(BaseExperiment):
     def __init__(self, experiment_directory=None, config=None):
-        super(CellposeBaseExperiment, self).__init__(experiment_directory)
+        super(CoreSpaceMExperiment, self).__init__(experiment_directory)
         # Privates
         self._meta_config['exclude_attrs_from_save'] = ['data_loader', '_device']
         if config is not None:
             self.read_config_file(config)
 
         self.auto_setup(update_git_revision=False)
+
+        self._zarr_path_predictions = None
+
+    # ------------------------------------------------------------------------------------------------------
+    # Basic modifications to change the name of the configuration file from 'train_config' to 'main_config'
+    def read_config_file(self, file_name='main_config.yml', **kwargs):
+        return super(CoreSpaceMExperiment, self).read_config_file(file_name=file_name, **kwargs)
+
+    def inherit_configuration(self, from_experiment_directory, file_name='main_config.yml', **kwargs):
+        return super(CoreSpaceMExperiment, self).inherit_configuration(from_experiment_directory, file_name=file_name,
+                                                                         **kwargs)
+
+    def dump_configuration(self, file_name='main_config.yml'):
+        return super(CoreSpaceMExperiment, self).dump_configuration(file_name=file_name)
+    # ------------------------------------------------------------------------------------------------------
+
+
+class CellposeBaseExperiment(CoreSpaceMExperiment):
+    def __init__(self, experiment_directory=None, config=None):
+        super(CellposeBaseExperiment, self).__init__(experiment_directory, config)
 
         # Replace some path placeholders:
         # TODO: move to another place and generalize to the full config?
@@ -91,22 +111,22 @@ class CellposeBaseExperiment(BaseExperiment):
         cellpose_infer.multiple_cellpose_inference(dirs_to_process=dirs_to_process,
                                                    **multiple_cellpose_inference_kwargs)
 
-        # Collect predictions from all models and combine all images in a single zarr file:
-        self.convert_multiple_cellpose_output_to_zarr()
+        # # Collect predictions from all models and combine all images in a single zarr file:
+        # self.convert_multiple_cellpose_output_to_zarr()
 
     def convert_multiple_cellpose_output_to_zarr(self):
         zarr_path_predictions, collected_model_names = convert_multiple_cellpose_output_to_zarr(
             os.path.join(self.experiment_directory, "cellpose_predictions"))
 
-        # Save data in config file for later use:
-        self.set("cellpose_inference/zarr_path_predictions", zarr_path_predictions)
+        # Save data in config file:
+        self.set("cellpose_inference/zarr_path_predictions", self.zarr_path_predictions)
         self.set("cellpose_inference/names_predicted_models", collected_model_names)
 
     def export_results(self):
         """
         For the moment this method is thought for inference. Generalize...?
         """
-        zarr_path_predictions = self.get("cellpose_inference/zarr_path_predictions", ensure_exists=True)
+        zarr_path_predictions = self.zarr_path_predictions
         input_zarr_group_path = self.get("preprocessing/data_zarr_group", ensure_exists=True)
         export_images_from_zarr_kwargs = self.get("export_results/export_images_from_zarr_kwargs", ensure_exists=True)
         csv_config_path = input_zarr_group_path.replace(".zarr", ".csv")
@@ -180,18 +200,13 @@ class CellposeBaseExperiment(BaseExperiment):
         df.sort_values(by=['Data type', 'aji'], inplace=True, ascending=False)
         df.to_csv(os.path.join(out_score_dir, "scores.csv"))
 
-    # ------------------------------------------------------------------------------------------------------
-    # Basic modifications to change the name of the configuration file from 'train_config' to 'main_config'
-    def read_config_file(self, file_name='main_config.yml', **kwargs):
-        return super(CellposeBaseExperiment, self).read_config_file(file_name=file_name, **kwargs)
+    @property
+    def zarr_path_predictions(self):
+        if self._zarr_path_predictions is None:
+            self._zarr_path_predictions = os.path.join(self.experiment_directory, "cellpose_predictions",
+                                                    "predictions_collected.zarr")
+        return self._zarr_path_predictions
 
-    def inherit_configuration(self, from_experiment_directory, file_name='main_config.yml', **kwargs):
-        return super(CellposeBaseExperiment, self).inherit_configuration(from_experiment_directory, file_name=file_name,
-                                                                         **kwargs)
-
-    def dump_configuration(self, file_name='main_config.yml'):
-        return super(CellposeBaseExperiment, self).dump_configuration(file_name=file_name)
-    # ------------------------------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':

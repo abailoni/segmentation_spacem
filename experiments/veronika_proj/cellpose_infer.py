@@ -1,14 +1,20 @@
 import os.path
 import sys
 
+import cv2
 import numpy as np
+import pandas
 import vigra
 import segmfriends.io.zarr as zarr_utils
 import nifty.graph.rag
 import nifty.tools as ntools
 
 from segmUtils.io.export_images_from_zarr import export_images_from_zarr
+from segmUtils.preprocessing.preprocessing import convert_images_to_zarr_dataset, read_uint8_img, \
+    read_segmentation_from_file
+from segmfriends.io.images import write_segm_to_file
 from segmfriends.speedrun_exps.utils import process_speedrun_sys_argv
+from segmfriends.utils import check_dir_and_create
 
 from speedrun import BaseExperiment
 from segmfriends.utils.paths import get_vars_from_argv_and_pop
@@ -17,7 +23,8 @@ from segmUtils.segmentation.cellpose.base_experiment import CellposeBaseExperime
 
 from segmUtils.preprocessing import preprocessing as spacem_preproc
 from segmUtils.segmentation.cellpose import infer as cellpose_infer
-from segmUtils.postprocessing.convert_to_zarr import convert_segmentations_to_zarr, convert_multiple_cellpose_output_to_zarr
+from segmUtils.postprocessing.convert_to_zarr import convert_segmentations_to_zarr, \
+    convert_multiple_cellpose_output_to_zarr
 
 
 class MacrophagesExperiment(CellposeBaseExperiment):
@@ -26,8 +33,7 @@ class MacrophagesExperiment(CellposeBaseExperiment):
         zarr_path_predictions = self.zarr_path_predictions
         input_zarr_group_path = self.get("preprocessing/data_zarr_group", ensure_exists=True)
         sem_segm_kwargs = self.get("compute_semantic_segm/compute_semantic_segm_kwargs",
-                                                ensure_exists=True)
-
+                                   ensure_exists=True)
 
         # Import raw data:
         mCherry_ch = zarr_utils.load_array_from_zarr_group(
@@ -71,7 +77,7 @@ class MacrophagesExperiment(CellposeBaseExperiment):
             mapped_sem_segm[np.logical_and(mCherry_mask, mapped_sem_segm == 0)] = 3
 
             # Delete small segments and get final segmentation:
-            final_segm = np.where(GFP_segm == 0, mapped_sem_segm, GFP_segm+5)
+            final_segm = np.where(GFP_segm == 0, mapped_sem_segm, GFP_segm + 5)
             max_label = 0
             for z in range(mapped_sem_segm.shape[0]):
                 background_mask = final_segm[z] == 0
@@ -90,7 +96,7 @@ class MacrophagesExperiment(CellposeBaseExperiment):
             mapped_sem_segm[mask_small_segments] = 0
             final_segm[mask_small_segments] = 0
 
-
+            # Save segmentations to zarr file:
             zarr_utils.add_dataset_to_zarr_group(
                 zarr_path_predictions,
                 mapped_sem_segm,
@@ -106,6 +112,94 @@ class MacrophagesExperiment(CellposeBaseExperiment):
             )
 
         print("Done processing semantic segmentations")
+
+    def export_results(self):
+        """
+        For the moment this method is thought for inference. Generalize...?
+        """
+        zarr_path_predictions = self.zarr_path_predictions
+        input_zarr_group_path = self.get("preprocessing/data_zarr_group", ensure_exists=True)
+        export_images_from_zarr_kwargs = self.get("export_results/export_images_from_zarr_kwargs", ensure_exists=True)
+        csv_config_path = input_zarr_group_path.replace(".zarr", ".csv")
+
+        export_dir = os.path.join(self.experiment_directory, "exported_results")
+        self.set("export_results/export_path", export_dir)
+
+        # Insert zarr path of the prediction file in the export parameters:
+        assert "datasets_to_export" in export_images_from_zarr_kwargs
+        datasets_to_export = export_images_from_zarr_kwargs.pop("datasets_to_export")
+        for idx in range(len(datasets_to_export)):
+            datasets_to_export[idx]["z_path"] = zarr_path_predictions
+
+        # Export images in the original structure:
+        export_images_from_zarr(export_dir,
+                                csv_config_path,
+                                datasets_to_export=datasets_to_export,
+                                delete_previous=True,
+                                **export_images_from_zarr_kwargs)
+
+    def convert_sem_segm_to_csv(self):
+        export_dir = os.path.join(self.experiment_directory, "exported_results")
+
+        df = convert_images_to_zarr_dataset(input_dir_path=export_dir,
+                                            # ensure_all_channel_existance=True,
+                                            rename_unique=False,
+                                            extension=".tif",
+                                            save_to_zarr=False,
+                                            verbose=True,
+                                            final_segm="_cell_segm",
+                                            sem_segm="_cell_type"
+                                            )
+
+        for idx, image_data in df.iterrows():
+            dir = image_data["Input dir"]
+            final_segm = read_segmentation_from_file(os.path.join(dir, image_data["final_segm"]))
+            sem_segm = read_segmentation_from_file(os.path.join(dir, image_data["sem_segm"]))
+
+            print("Max sem segmentation for {}: {}".format(image_data["final_segm"], sem_segm.max()))
+
+            # Save semantic segmentation to csv:
+            final_segm, _, _ = vigra.analysis.relabelConsecutive(final_segm.astype("uint32"))
+
+            rag = nifty.graph.rag.gridRag(final_segm.astype('uint32'))
+            _, node_feat = nifty.graph.rag.accumulateMeanAndLength(rag, sem_segm.astype('float32'))
+            node_semantic_segmentation = node_feat[:, 0].astype('uint32')
+
+            # Write semantic data to csv:
+            df = pandas.DataFrame({'cell_instance_ID': np.arange(1, node_semantic_segmentation.shape[0]),
+                                   'semantic_class': node_semantic_segmentation[1:]})
+            df.to_csv(os.path.join(dir,image_data["sem_segm"].replace(".tif", ".csv")),index=False, sep=";")
+
+            # Rewrite the new relabelled segmentation:
+            write_segm_to_file(os.path.join(dir, image_data["final_segm"]), final_segm)
+
+    def test_enhance(self):
+        in_dir = os.path.join(self.experiment_directory, "cellpose_inputs/GFP_DAPI")
+
+        df = convert_images_to_zarr_dataset(input_dir_path=in_dir,
+                                            rename_unique=False,
+                                            extension=".png",
+                                            save_to_zarr=False,
+                                            verbose=True,
+                                            cellpose_input="_0",
+                                            )
+
+        from PIL import Image, ImageEnhance
+
+        for idx, image_data in df.iterrows():
+            dir = image_data["Input dir"]
+            cellpose_input = read_uint8_img(os.path.join(dir, image_data["cellpose_input"]))
+            pil_img = Image.fromarray(cellpose_input)
+            enhancer = ImageEnhance.Brightness(pil_img)
+            pil_img_out = enhancer.enhance(3)
+
+            out_dir = os.path.join(dir, "../bright")
+            check_dir_and_create(out_dir)
+            pil_img_out.save(os.path.join(out_dir, image_data["cellpose_input"]))
+            # cv2.imwrite(os.path.join(out_dir, image_data["cellpose_input"]), pil_img_out)
+            break
+
+
 
 if __name__ == '__main__':
     source_path = os.path.dirname(os.path.realpath(__file__))

@@ -20,12 +20,10 @@ from segmUtils.segmentation.cellpose import infer as cellpose_infer
 from segmUtils.postprocessing.convert_to_zarr import convert_segmentations_to_zarr, convert_multiple_cellpose_output_to_zarr
 
 
-class FinetuneCellPose(CellposeBaseExperiment):
-    pass
-
 if __name__ == '__main__':
     source_path = os.path.dirname(os.path.realpath(__file__))
     sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_rel_path="./configs")
 
-    cls = FinetuneCellPose
+    cls = CellposeBaseExperiment
     cls().run()
+

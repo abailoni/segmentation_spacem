@@ -1,0 +1,4 @@
+generate_cellpose_input:
+  convert_to_cellpose_kwargs:
+    enhance_factor: 3
+    enhance_image: True
