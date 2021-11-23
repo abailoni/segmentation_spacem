@@ -1,27 +1,24 @@
-# TODO:
-#     - replace scratch folder path with placeholder...?
-
 methods_to_run:
 #  - preprocessing
 #  - generate_cellpose_input
-  - cellpose_inference
-  - convert_multiple_cellpose_output_to_zarr # Not needed if inference is done
+#  - cellpose_inference
+#  - convert_multiple_cellpose_output_to_zarr # Not needed if inference is done
   - compute_semantic_segm
   - export_results
 
 
 preprocessing:
-  data_zarr_group: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/debug_unified_experiment.zarr"
+  data_zarr_group: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6_fixed/data.zarr"
   datasets_to_process: ["main_dataset"]
   channels_to_process:
     - mCherry
     - GFP
     - DAPI
   main_dataset:
-    input_dir_path: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/data" # TODO: update
-    projectdir_depth: -4 #TODO: update
-    precrop: "5400:7600, 5900:9300" #TODO: update
-    max_nb_images: 1 #TODO: update
+    input_dir_path: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6_fixed/data"
+    projectdir_depth: -1
+#    precrop: "5400:7600, 5900:9300"
+#    max_nb_images: 1
     general_filter: "fused_tp_"
     mCherry: "_ch_0"
     GFP: "_ch_1"
@@ -40,7 +37,8 @@ generate_cellpose_input:
 
 
 cellpose_inference:
-  input_dir: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6/cellpose_input_images/GFP_DAPI_debug_unified_experiment"
+  input_dir: "$EXP_DIR/cellpose_inputs/GFP_DAPI"
+  zarr_path_predictions: "/scratch/bailoni/projects/cellpose_projects/vero_Bosurgi6_fixed/cellpose_predictions/predictions_collected.zarr" # TODO: update and remove this
   multiple_cellpose_inference_kwargs:
     estimate_diameter: [False]
     overwrite_estimate_diameter:
@@ -57,15 +55,17 @@ cellpose_inference:
 compute_semantic_segm:
   compute_semantic_segm_kwargs:
     red_channel_name: "mCherry"
-    red_ch_thresh: 13 # How high the red-signal should be to detect a red segment
-    red_ch_cell_mean_thresh: 2. # How high the avg red-signal should be over a cell to label it as "infected"
+    red_ch_thresh: 25 # How high the red-signal should be to detect a red segment
+    red_ch_cell_mean_thresh: 20. # How high the avg red-signal should be over a cell to label it as "infected"
+    size_threshold: 50
     instance_segm_to_process:
-      - {instance_segm_path: "cyto2_diamEst", out_zarr_inner_path: "sem_segmentation"}
+      - {instance_segm_path: "cyto2_diamEst"}
 
 
 export_results:
   export_images_from_zarr_kwargs:
-    filter_main_image_in_csv: "_ch_0"
+    filter_main_image_in_csv: "_ch_2"
     datasets_to_export:
-      - {inner_path: "cyto2_diamEst", out_filter: "_cell_segm"}
+#      - {inner_path: "cyto2_diamEst", out_filter: "_cell_segm"}
+      - {inner_path: "final_segmentation", out_filter: "_cell_segm"}
       - {inner_path: "sem_segmentation", out_filter: "_cell_type"}

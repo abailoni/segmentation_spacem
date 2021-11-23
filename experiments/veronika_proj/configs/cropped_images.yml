@@ -1,0 +1,14 @@
+methods_to_run:
+#  - preprocessing
+#  - generate_cellpose_input
+#  - cellpose_inference
+  - convert_multiple_cellpose_output_to_zarr
+  - compute_semantic_segm
+  - export_results
+
+
+
+preprocessing:
+  data_zarr_group: "/scratch/bailoni/datasets/veronika/macrophages_Bosurgi6_fixed/data_cropped.zarr"
+  main_dataset:
+    precrop: "5400:7600, 5900:9300"

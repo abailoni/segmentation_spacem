@@ -23,8 +23,7 @@ from segmUtils.postprocessing.convert_to_zarr import convert_segmentations_to_za
 class MacrophagesExperiment(CellposeBaseExperiment):
     def compute_semantic_segm(self):
         # TODO: do it for every slice if too memory consuming...?
-
-        zarr_path_predictions = self.get("cellpose_inference/zarr_path_predictions", ensure_exists=True)
+        zarr_path_predictions = self.zarr_path_predictions
         input_zarr_group_path = self.get("preprocessing/data_zarr_group", ensure_exists=True)
         sem_segm_kwargs = self.get("compute_semantic_segm/compute_semantic_segm_kwargs",
                                                 ensure_exists=True)
@@ -45,10 +44,12 @@ class MacrophagesExperiment(CellposeBaseExperiment):
             # Compute mCherry segmentation:
             mCherry_mask = mCherry_ch >= sem_segm_kwargs.get("red_ch_thresh", 13)
 
-            # # Get segments?
+            # # Get segmentation:
+            # mCherry_segm = np.zeros_like(mCherry_mask, dtype="uint32")
+            # max_label = 0
             # for z in range(mCherry_mask.shape[0]):
-            #     pass
-            #     vigra.analysis.labelImage()
+            #     mCherry_segm[z] = vigra.analysis.labelImage(mCherry_mask[z]) + max_label
+            #     max_label += mCherry_segm[z].max() + 1
 
             rag = nifty.graph.rag.gridRag(GFP_segm.astype('uint32'))
             _, node_feat = nifty.graph.rag.accumulateMeanAndLength(rag, mCherry_ch.astype('float32'))
@@ -66,15 +67,45 @@ class MacrophagesExperiment(CellposeBaseExperiment):
                 ..., 0].astype(
                 'uint16')
 
+            # Semantically label small cherry segments:
             mapped_sem_segm[np.logical_and(mCherry_mask, mapped_sem_segm == 0)] = 3
+
+            # Delete small segments and get final segmentation:
+            final_segm = np.where(GFP_segm == 0, mapped_sem_segm, GFP_segm+5)
+            max_label = 0
+            for z in range(mapped_sem_segm.shape[0]):
+                background_mask = final_segm[z] == 0
+                final_segm[z] = vigra.analysis.labelImageWithBackground(final_segm[z].astype('uint32')) + max_label
+                final_segm[z][background_mask] = 0
+                max_label += final_segm[z].max() + 1
+
+            def get_size_map(label_image):
+                node_sizes = np.bincount(label_image.flatten())
+                return ntools.mapFeaturesToLabelArray(label_image, node_sizes[:, None], nb_threads=6).squeeze()
+
+            size_map = get_size_map(final_segm)
+
+            print("Size threshold: {}".format(sem_segm_kwargs.get("size_threshold", 25)))
+            mask_small_segments = size_map < sem_segm_kwargs.get("size_threshold", 25)
+            mapped_sem_segm[mask_small_segments] = 0
+            final_segm[mask_small_segments] = 0
+
 
             zarr_utils.add_dataset_to_zarr_group(
                 zarr_path_predictions,
                 mapped_sem_segm,
-                segm_data["out_zarr_inner_path"],
+                "sem_segmentation",
                 add_array_dimensions=True
             )
 
+            zarr_utils.add_dataset_to_zarr_group(
+                zarr_path_predictions,
+                final_segm,
+                "final_segmentation",
+                add_array_dimensions=True
+            )
+
+        print("Done processing semantic segmentations")
 
 if __name__ == '__main__':
     source_path = os.path.dirname(os.path.realpath(__file__))

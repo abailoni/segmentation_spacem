@@ -1,0 +1,17 @@
+#! /bin/bash
+#SBATCH -A alexandr
+#SBATCH -N 1
+#SBATCH --mem 64G
+#SBATCH -c 6 # sbatch does not launch tasks, it requests an allocation of resources and submits a batch script. This option advises the Slurm controller that job steps run within the allocation will launch a maximum of number tasks and to provide for sufficient resources. The default is one task per node, but note that the --cpus-per-task option will change this default.
+#SBATCH -n 8 # Number of cores
+#SBATCH -C "gpu=2080Ti"
+#SBATCH -t 2:00:00
+#SBATCH -p gpu
+#SBATCH -o slurm.%N.%j.out          # STDOUT
+#SBATCH -e slurm.%N.%j.err          # STDERR
+#SBATCH --mail-type=FAIL        # notifications for job done & fail: START,END,FAIL
+#SBATCH --mail-user=alberto.bailoni@embl.de # send-to address
+
+source activate pyT17
+ipython experiments/veronika_proj/cellpose_infer.py -- vero_Bosurgi6_fixed --inherit macrophages_Bosurgi6.yml
+
