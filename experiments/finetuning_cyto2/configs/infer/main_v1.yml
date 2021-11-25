@@ -1,17 +1,18 @@
 methods_to_run:
-  - preprocessing
-  - generate_cellpose_input
+#  - preprocessing
+#  - generate_cellpose_input
   - cellpose_inference
-#  - convert_multiple_cellpose_output_to_zarr # Not needed if inference is performed
+  - convert_multiple_cellpose_output_to_zarr
   - export_results
-#  - compute_scores
+  - compute_scores
 
 preprocessing:
   data_zarr_group: "/scratch/bailoni/datasets/combined/some_images/data.zarr"
   datasets_to_process:
-    - alyona_cocultur
-    - alex_labels
-    - martijn_examples
+#    - alyona_cocultur
+#    - alex_labels
+    - val_alex_labels
+#    - martijn_examples
   channels_to_process:
     - BF
     - DAPI
@@ -41,6 +42,14 @@ preprocessing:
     extension: ".tif"
     DAPI: "$ZERO"
 #    verbose: True
+  val_alex_labels:
+    input_dir_path: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original/valid"
+#    projectdir_depth: -1
+    BF: "_c0_img"
+    extension: ".tif"
+    DAPI: "$ZERO"
+#    verbose: True
+
 
 generate_cellpose_input:
   generate_for:
@@ -48,22 +57,26 @@ generate_cellpose_input:
   convert_to_cellpose_kwargs:
     cellpose_ch0: "BF"
     cellpose_ch1: "DAPI"
-    preprocess_ch0: True
+    preprocess_ch0: False
 
 
 cellpose_inference:
-  input_dir: "$EXP_DIR/cellpose_inputs/flou_style"
+  input_dir: "$EXP_DIR/cellpose_inputs"
   multiple_cellpose_inference_kwargs:
     estimate_diameter: [False]
     overwrite_estimate_diameter:
       cyto2: True
-    save_npy: False
-    first_ch: 2 # Green
-    second_ch: 1 # Red
+    chan: 2 # Green
+    chan2: 1 # Red
     mask_filter: "_masks"
+#    cellpose_infer_args:
+#      - no_npy
 
     tested_models:
       cyto2: "cyto2"
+      cyto2_alex_CP: ../train/cyto2_alex_plus_CP/$LATEST
+      cyto2_alex: ../train/cyto2_alex/$LATEST
+      scratch_alex_CP: ../train/scratch_alex_plus_CP/$LATEST
       # cleaned_finetuned_LIVECell_v1: "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_08_49.114912"
 
 
@@ -73,20 +86,32 @@ export_results:
     filter_main_image_in_csv:
       alyona_cocultur: "_c0"
       alex_labels: "_c0_img"
+      val_alex_labels: "_c0_img"
       martijn_examples: "_c0"
     datasets_to_export:
-      - {inner_path: "cyto2_diamEst", out_filter: "_cell_segm"}
+      - {inner_path: "cyto2_diamEst", out_filter: "_cyto2"}
+      - {inner_path: "cyto2_alex_CP_noDiamEst", out_filter: "_cyto2_alex_CP"}
+      - {inner_path: "cyto2_alex_noDiamEst", out_filter: "_cyto2_alex"}
+      - {inner_path: "scratch_alex_CP_noDiamEst", out_filter: "_scratch_alex_CP"}
 
 compute_scores:
-  datasets_to_evaluate:
-    - alex_images
-  models_to_evaluate:
-    - cyto2_diamEst
-  alex_images:
-    dataset_name: alex_labels
-    GT_dir: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original"
+  configs_to_evaluate:
+    - cyto2
+    - cyto2_alex_CP
+    - cyto2_alex
+    - scratch_alex_CP
+  global_config:
+    dataset_name: val_alex_labels
+    GT_dir: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original/valid"
     GT_filter: "_c0_masks"
     GT_extension: ".png"
-    pred_filter: "_cell_segm"
     only_look_at_top_level: False
     AP_thresholds: [0.5, 0.75]
+  cyto2:
+    pred_filter: "_cyto2"
+  cyto2_alex_CP:
+    pred_filter: "_cyto2_alex_CP"
+  cyto2_alex:
+    pred_filter: "_cyto2_alex"
+  scratch_alex_CP:
+    pred_filter: "_scratch_alex_CP"

@@ -1,0 +1,27 @@
+experiment_config:
+  main_experiment_dir: /scratch/bailoni/projects/cellpose_projects/finetuning/infer
+  dataset_names:
+    - val_alex_labels
+
+  configs_to_plot:
+    - cyto2
+    - cyto2_alex_CP
+    - cyto2_alex
+    - scratch_alex_CP
+  global_config:
+    pred_extension: ".tif"
+    exp_name: infer_models_trained_on_alex_data
+
+  cyto2:
+    pred_filter: "_cyto2"
+  cyto2_alex_CP:
+    pred_filter: "_cyto2_alex_CP"
+  cyto2_alex:
+    pred_filter: "_cyto2_alex"
+  scratch_alex_CP:
+    pred_filter: "_scratch_alex_CP"
+
+
+
+
+

@@ -73,9 +73,9 @@ class MakeComparisonPlots(CoreSpaceMExperiment):
         configs_to_plot = self.get("experiment_config/configs_to_plot")
         global_config = self.get("experiment_config/global_config", {})
 
-        # TODO: generalize to multiple datasets
         # Get all database names:
         dataset_names = self.get("experiment_config/dataset_names")
+        nb_GT_segments = 0
 
         # Get configs:
         all_configs = []
@@ -168,6 +168,7 @@ class MakeComparisonPlots(CoreSpaceMExperiment):
                     # Load GT if needed:
                     if GT_config is not None:
                         gt_segm = imageio.imread(os.path.join(GT_config["dir"], rel_path, GT_img_name))
+                        nb_GT_segments += np.unique(gt_segm).shape[0]
                         segm_vis.plot_segm(ax[1, 0], gt_segm[None], background=raw[None], alpha_labels=0.45,
                                            alpha_boundary=0.4, mask_value=0)
                         ax[1, 0].set_title("Ground truth", fontweight='bold')
@@ -179,10 +180,14 @@ class MakeComparisonPlots(CoreSpaceMExperiment):
                     for idx, config in enumerate(all_configs):
                         model_name_to_plot = configs_to_plot[idx]
                         pred_dir = all_pred_dirs[idx]
+                        if pred_filter is not None:
+                            new_pred_filename = filename.replace(pred_filter, config["pred_filter"])
+                        else:
+                            new_pred_filename = filename + config["pred_filter"]
                         # Load segm:
-                        new_pred_path = os.path.join(pred_dir, rel_path, filename)
+                        new_pred_path = os.path.join(pred_dir, rel_path, new_pred_filename)
                         assert os.path.isfile(new_pred_path), "Prediction {} not found for model {}: {}".format(
-                            filename,
+                            new_pred_filename,
                             model_name_to_plot,
                             new_pred_path)
                         segm = imageio.imread(new_pred_path)
@@ -204,13 +209,15 @@ class MakeComparisonPlots(CoreSpaceMExperiment):
                     f.savefig(os.path.join(dataset_plot_dir, rel_path, out_name),
                               format='png', bbox_inches='tight')
                     print("Plotted {}".format(out_name))
+                    plt.close(f)
+        print(nb_GT_segments)
 
 
 
 if __name__ == '__main__':
     source_path = os.path.dirname(os.path.realpath(__file__))
-    sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_rel_path="./configs",
-                                         default_exp_path="/scratch/bailoni/projects/cellpose_projects/combined_plots")
+    sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_rel_path="./configs/plots",
+                                         default_exp_path="/scratch/bailoni/projects/cellpose_projects/finetuning/combined_plots")
 
     cls = MakeComparisonPlots
     cls().run()

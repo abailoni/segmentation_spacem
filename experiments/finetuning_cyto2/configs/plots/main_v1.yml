@@ -3,12 +3,21 @@ plot_config:
 
 
 GT_config:
+  val_alex_labels:
+    dir: /scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original/valid
+    filter: "_c0_masks"
+    extension: ".png"
   alex_labels:
     dir: /scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original
     filter: "_c0_masks"
     extension: ".png"
 
+
 raw_config:
+  val_alex_labels:
+    dir: /scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original/valid
+    filter: "_c0_img"
+    extension: ".tif"
   alex_labels:
     dir: /scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original
     filter: "_c0_img"
@@ -26,14 +35,13 @@ experiment_config:
   main_experiment_dir: /scratch/bailoni/projects/cellpose_projects
   dataset_names:
     - alex_labels
-    - alyona_cocultur
-    - martijn_examples
+#    - alyona_cocultur
+#    - martijn_examples
   configs_to_plot:
     - original
     - fluo_subtract
 #    - fluo_multiply
   global_config:
-    model_name: "cyto2_diamEst"
     pred_extension: ".tif"
     pred_filter: "_cell_segm"
 

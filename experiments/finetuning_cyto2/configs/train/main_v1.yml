@@ -1,0 +1,50 @@
+
+methods_to_run:
+#  - preprocessing
+#  - generate_cellpose_input
+  - train_cellpose
+
+preprocessing:
+  data_zarr_group: "/scratch/bailoni/datasets/combined/some_images/data.zarr"
+  datasets_to_process:
+    - alex_labels
+  channels_to_process:
+    - BF
+    - DAPI
+  alex_labels:
+    input_dir_path: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original/valid"
+    projectdir_depth: -1
+    BF: "_c0_img"
+    extension: ".tif"
+    DAPI: "$ZERO"
+    rename_unique: False
+
+generate_cellpose_input:
+  out_dir: "$EXP_DIR/cellpose_inputs/generated"
+  convert_to_cellpose_kwargs:
+    cellpose_ch0: "BF"
+    cellpose_ch1: "DAPI"
+    preprocess_ch0: False
+
+train_cellpose:
+  main_train_dir: "/scratch/bailoni/datasets/combined_cellpose_data/alex_plus_cellpose_train"
+  input_train_dirs:
+    - "/scratch/bailoni/datasets/alex/cellpose_training"
+    - "/scratch/bailoni/datasets/cellpose/train"
+  main_val_dir: "/scratch/bailoni/datasets/alex/cellpose_val"
+#  input_val_dirs:
+#    - "/scratch/bailoni/datasets/alex/cellpose_val"
+  cellpose_training_kwargs:
+    pretrained_model: "cyto2"
+    save_every: 10
+    learning_rate: 0.0002
+    chan: 2
+    chan2: 1
+    n_epochs: 500
+    batch_size: 8
+    mask_filter: "_masks"
+  cellpose_training_args:
+    - no_npy
+    - save_each
+#    - train_size
+

@@ -1,0 +1,4 @@
+train_cellpose:
+  cellpose_training_kwargs:
+    pretrained_model: None
+

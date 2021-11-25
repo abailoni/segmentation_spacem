@@ -13,7 +13,7 @@ from segmfriends.speedrun_exps.utils import process_speedrun_sys_argv
 from speedrun import BaseExperiment
 from segmfriends.utils.paths import get_vars_from_argv_and_pop
 
-from segmUtils.segmentation.cellpose.base_experiment import CellposeBaseExperiment
+from segmUtils.segmentation.cellpose.train_experiment import TrainingCellposeExperiment
 
 from segmUtils.preprocessing import preprocessing as spacem_preproc
 from segmUtils.segmentation.cellpose import infer as cellpose_infer
@@ -22,9 +22,9 @@ from segmUtils.postprocessing.convert_to_zarr import convert_segmentations_to_za
 
 if __name__ == '__main__':
     source_path = os.path.dirname(os.path.realpath(__file__))
-    sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_rel_path="./configs/infer",
-                                         default_exp_path="/scratch/bailoni/projects/cellpose_projects/finetuning/infer")
+    sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_rel_path="./configs/train",
+         default_exp_path="/scratch/bailoni/projects/cellpose_projects/finetuning/train")
 
-    cls = CellposeBaseExperiment
+    cls = TrainingCellposeExperiment
     cls().run()
 

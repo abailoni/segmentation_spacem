@@ -10,12 +10,13 @@ import cv2
 import numpy as np
 
 
+
 def multiple_cellpose_inference(tested_models,
                                 overwrite_estimate_diameter,
                                 dirs_to_process,
                                 estimate_diameter=False,
-                                save_npy=False,
-                                first_ch=2, second_ch=1, mask_filter="_masks"
+                                cellpose_infer_args=( ),
+                                **cellpose_infer_kwargs
                                 ):
     estimate_diameter = estimate_diameter if isinstance(estimate_diameter, (tuple, list)) else [estimate_diameter]
 
@@ -37,19 +38,24 @@ def multiple_cellpose_inference(tested_models,
                 # Create out dir:
                 check_dir_and_create(out_dir)
 
-                # FIXME: need to specify ipython path for debugging with PyCharm
+                # TODO: find a way to specify ipython path for debugging with PyCharm
                 command = "/scratch/bailoni/miniconda3/envs/pyT17/bin/ipython -m cellpose " \
                           "-- --use_gpu --dir {} --savedir {} --pretrained_model {} " \
-                          "--chan {} --chan2 {} " \
-                          "--mask_filter {} --save_png --diameter {} " \
-                          "--use_size_model {}".format(
+                          "--save_png --diameter {} " \
+                          "--use_size_model ".format(
                     input_dir,
                     out_dir,
                     model_path,
-                    first_ch,
-                    second_ch,
-                    mask_filter,
-                    diameter,
-                    "" if save_npy else "--no_npy"
+                    diameter
                 )
+
+                # Add the args:
+                for arg in cellpose_infer_args:
+                    assert isinstance(arg, str), "Arguments should be strings"
+                    command += "--{} ".format(arg)
+
+                # Add the kwargs:
+                for kwarg in cellpose_infer_kwargs:
+                    command += "--{} {} ".format(kwarg, cellpose_infer_kwargs[kwarg])
+                print(command)
                 os.system(command)

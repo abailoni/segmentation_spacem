@@ -1,3 +1,4 @@
+import glob
 from copy import deepcopy
 import os
 import sys
@@ -29,7 +30,20 @@ class CoreSpaceMExperiment(BaseExperiment):
 
         self.auto_setup(update_git_revision=False)
 
-        self._zarr_path_predictions = None
+
+    def replace_experiment_placeholder_in_config(self, name_config_property):
+        config_property = self.get(name_config_property)
+        if isinstance(config_property, dict):
+            # In case of a dictionary, recurse:
+            for sub_property in config_property:
+                self.replace_experiment_placeholder_in_config("{}/{}".format(name_config_property,
+                                                                             sub_property))
+        else:
+            if config_property is not None and isinstance(config_property, str):
+                if "$EXP_DIR" in config_property:
+                    config_property = config_property.replace("$EXP_DIR", self.experiment_directory)
+                    self.set(name_config_property, config_property)
+
 
     # ------------------------------------------------------------------------------------------------------
     # Basic modifications to change the name of the configuration file from 'train_config' to 'main_config'
@@ -51,11 +65,11 @@ class CellposeBaseExperiment(CoreSpaceMExperiment):
 
         # Replace some path placeholders:
         # TODO: move to another place and generalize to the full config?
-        input_dir = self.get("cellpose_inference/input_dir")
-        if input_dir is not None:
-            if "$EXP_DIR" in input_dir:
-                input_dir = input_dir.replace("$EXP_DIR", self.experiment_directory)
-                self.set("cellpose_inference/input_dir", input_dir)
+        self.replace_experiment_placeholder_in_config("cellpose_inference")
+        self.replace_experiment_placeholder_in_config("generate_cellpose_input")
+
+
+        self._zarr_path_predictions = None
 
     def run(self):
         methods_to_run = self.get("methods_to_run", ensure_exists=True)
@@ -91,16 +105,24 @@ class CellposeBaseExperiment(CoreSpaceMExperiment):
         data_zarr_group = self.get("preprocessing/data_zarr_group", ensure_exists=True)
         convert_to_cellpose_kwargs = self.get("generate_cellpose_input/convert_to_cellpose_kwargs", ensure_exists=True)
 
-        generate_for = self.get("generate_cellpose_input/generate_for", ensure_exists=True)
-        for method_name in generate_for:
-            cellpose_input_dir = self.get("{}/input_dir".format(method_name), ensure_exists=True)
+        # Get path where to output cellpose images:
+        # Legacy option: `generate_for`
+        generate_for = self.get("generate_cellpose_input/generate_for", None)
+        all_input_dir = []
+        if generate_for is not None:
+            for method_name in generate_for:
+                all_input_dir.append(self.get("{}/input_dir".format(method_name), ensure_exists=True))
+        else:
+            all_input_dir = [self.get("generate_cellpose_input/out_dir", ensure_exists=True)]
 
+        for cellpose_input_dir in all_input_dir:
             # Convert images from zarr to cellpose format:
             spacem_preproc.from_zarr_to_cellpose(data_zarr_group, out_dir=cellpose_input_dir,
                                                  delete_previous=True,
                                                  **convert_to_cellpose_kwargs)
 
     def cellpose_inference(self):
+
         # Get run args and paths:
         cellpose_input_dir = self.get("cellpose_inference/input_dir", ensure_exists=True)
         cellpose_out_dir = os.path.join(self.experiment_directory, "cellpose_predictions", "$MODEL_NAME")
@@ -108,6 +130,29 @@ class CellposeBaseExperiment(CoreSpaceMExperiment):
 
         multiple_cellpose_inference_kwargs = self.get("cellpose_inference/multiple_cellpose_inference_kwargs",
                                                       ensure_exists=True)
+
+        # If necessary, replace the model path and get it from a given experiment:
+        tested_models = multiple_cellpose_inference_kwargs["tested_models"]
+        for model_name in tested_models:
+            model_path = tested_models[model_name]
+            if "$EXP_DIR" in model_path:
+                model_path = model_path.replace("$EXP_DIR", self.experiment_directory)
+            if model_path.endswith("$LATEST"):
+                model_path = model_path.replace("$LATEST", "")
+                # If experiment directory is not specified, append it:
+                if not os.path.exists(model_path):
+                    model_path = os.path.join(self.experiment_directory, "..", model_path)
+                model_path = os.path.join(model_path, "Weights/models")
+                assert os.path.exists(model_path), "Model path {} was not found".format(model_path)
+
+                # Now find the most recent model in the specified experiment folder:
+                list_of_files = glob.glob(os.path.join(model_path, "*"))  # * means all if need specific format then *.csv
+                latest_model = max(list_of_files, key=os.path.getctime)
+                model_path = latest_model
+
+            # Save the modified path:
+            tested_models[model_name] = model_path
+
         cellpose_infer.multiple_cellpose_inference(dirs_to_process=dirs_to_process,
                                                    **multiple_cellpose_inference_kwargs)
 
@@ -148,49 +193,52 @@ class CellposeBaseExperiment(CoreSpaceMExperiment):
                                 **export_images_from_zarr_kwargs)
 
     def compute_scores(self):
-        datasets_to_evaluate = self.get("compute_scores/datasets_to_evaluate", ensure_exists=True)
-        models_to_evaluate = self.get("compute_scores/models_to_evaluate", ensure_exists=True)
+        configs_to_evaluate = self.get("compute_scores/configs_to_evaluate", ensure_exists=True)
         export_path = self.get("export_results/export_path", ensure_exists=True)
 
         collected_scores_names = None
         collected_scores = []
-        # TODO: add support for global config
-        for idx, export_name in enumerate(datasets_to_evaluate):
-            export_kwargs = self.get("compute_scores/{}".format(export_name), ensure_exists=True)
+
+        global_config = self.get("compute_scores/global_config", {})
+
+        for idx, export_name in enumerate(configs_to_evaluate):
+            export_kwargs = deepcopy(global_config)
+            export_kwargs.update(self.get("compute_scores/{}".format(export_name), {}))
             dataset_name = export_kwargs.pop("dataset_name")
             export_kwargs["pred_extension"] = ".tif"
             export_kwargs["pred_dir"] = pred_dir = os.path.join(export_path, dataset_name)
             AP_thresholds = export_kwargs["AP_thresholds"]
-            for model_name in models_to_evaluate:
-                scores = compute_scores(**export_kwargs)
 
-                # Prepare scores to be written to csv file:
-                scores_names = []
-                new_collected_scores = []
-                for sc_name in scores:
-                    score = scores[sc_name]
-                    assert len(score.shape) == 1
-                    for AP_thr_indx, scr in enumerate(score):
-                        new_collected_scores.append(scr)
-                        if collected_scores_names is None:
-                            if score.shape[0] == 1:
-                                scores_names.append(sc_name)
-                            else:
-                                assert score.shape[0] == len(AP_thresholds)
-                                scores_names.append("{}_{}".format(sc_name, AP_thresholds[AP_thr_indx]))
-                if collected_scores_names is None:
-                    collected_scores_names = deepcopy(scores_names)
-                basedir = os.path.basename(os.path.normpath(pred_dir))
+            scores = compute_scores(**export_kwargs)
 
-                if "_noDiamEst" in model_name:
-                    estimate_diam = 0
-                elif "_diamEst" in model_name:
-                    estimate_diam = 1
-                else:
-                    estimate_diam = None
+            # Prepare scores to be written to csv file:
+            scores_names = []
+            new_collected_scores = []
+            for sc_name in scores:
+                score = scores[sc_name]
+                assert len(score.shape) == 1
+                for AP_thr_indx, scr in enumerate(score):
+                    new_collected_scores.append(scr)
+                    if collected_scores_names is None:
+                        if score.shape[0] == 1:
+                            scores_names.append(sc_name)
+                        else:
+                            assert score.shape[0] == len(AP_thresholds)
+                            scores_names.append("{}_{}".format(sc_name, AP_thresholds[AP_thr_indx]))
+            if collected_scores_names is None:
+                collected_scores_names = deepcopy(scores_names)
+            basedir = os.path.basename(os.path.normpath(pred_dir))
 
-                collected_scores.append([basedir, model_name, estimate_diam] + new_collected_scores)
-                print("Done {}, {}".format(model_name, pred_dir))
+            estimate_diam = None
+            # if "_noDiamEst" in model_name:
+            #     estimate_diam = 0
+            # elif "_diamEst" in model_name:
+            #     estimate_diam = 1
+            # else:
+            #     estimate_diam = None
+
+            collected_scores.append([basedir, export_name, estimate_diam] + new_collected_scores)
+            print("Done {}, {}".format(export_name, pred_dir))
 
         # Create output score directory:
         out_score_dir = os.path.join(self.experiment_directory, "scores")

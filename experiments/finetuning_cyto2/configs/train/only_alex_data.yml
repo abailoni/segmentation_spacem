@@ -1,0 +1,7 @@
+train_cellpose:
+  main_train_dir: "/scratch/bailoni/datasets/alex/cellpose_training"
+  input_train_dirs: "KeyDeleter"
+  cellpose_training_kwargs:
+    save_every: 30
+    n_epochs: 5000
+

@@ -45,10 +45,11 @@ cellpose_inference:
     estimate_diameter: [False]
     overwrite_estimate_diameter:
       cyto2: True
-    save_npy: False
-    first_ch: 2
-    second_ch: 1
+    chan: 2 # Green
+    chan2: 1 # Red
     mask_filter: "_masks"
+    cellpose_infer_args:
+      - no_npy
 
     tested_models:
       cyto2: "cyto2"
