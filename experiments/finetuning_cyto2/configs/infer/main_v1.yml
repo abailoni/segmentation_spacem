@@ -1,8 +1,11 @@
+# TODO: afternoon
+#   - possibly, fix and plot npy
+
 methods_to_run:
 #  - preprocessing
 #  - generate_cellpose_input
-  - cellpose_inference
-  - convert_multiple_cellpose_output_to_zarr
+#  - cellpose_inference
+#  - convert_multiple_cellpose_output_to_zarr
   - export_results
   - compute_scores
 
@@ -10,8 +13,8 @@ preprocessing:
   data_zarr_group: "/scratch/bailoni/datasets/combined/some_images/data.zarr"
   datasets_to_process:
 #    - alyona_cocultur
-#    - alex_labels
-    - val_alex_labels
+    - alex_labels
+#    - val_alex_labels
 #    - martijn_examples
   channels_to_process:
     - BF
@@ -101,8 +104,8 @@ compute_scores:
     - cyto2_alex
     - scratch_alex_CP
   global_config:
-    dataset_name: val_alex_labels
-    GT_dir: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original/valid"
+    dataset_name: alex_labels
+    GT_dir: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original"
     GT_filter: "_c0_masks"
     GT_extension: ".png"
     only_look_at_top_level: False

@@ -6,9 +6,7 @@ def convert_to_cellpose_style(input_image, method="subtract"):
     # internal variables
     #   median_radius_raw = used in the background illumination pattern estimation.
     #       this radius should be larger than the radius of a single cell
-    #   target_median = 128 -- LIVECell phase contrast images all center around a 128 intensity
     median_radius_raw = 75
-    target_median = 128.0
 
     magnification_downsample_factor = 1.
 
@@ -16,23 +14,6 @@ def convert_to_cellpose_style(input_image, method="subtract"):
     median_radius = round(median_radius_raw * magnification_downsample_factor)
     if median_radius % 2 == 0:
         median_radius = median_radius + 1
-
-    # # scale so mean median image intensity is 128
-    # input_median = np.median(input_image)
-    # intensity_scale = target_median / input_median
-    # output_image = input_image.astype('float') * intensity_scale
-
-    # # define dimensions of downsampled image image
-    # dims = input_image.shape
-    # y = int(dims[0] * magnification_downsample_factor)
-    # x = int(dims[1] * magnification_downsample_factor)
-    #
-    # # apply resizing image to account for different magnifications
-    # output_image = cv2.resize(output_image, (x, y), interpolation=cv2.INTER_AREA)
-
-    # # clip here to regular 0-255 range to avoid any odd median filter results
-    # output_image[output_image > 255] = 255
-    # output_image[output_image < 0] = 0
 
     output_image = input_image.copy()
 
@@ -61,12 +42,6 @@ def convert_to_cellpose_style(input_image, method="subtract"):
         raise NotImplementedError
     output_image = output_image - output_image.min()
     output_image = output_image / output_image.max() * 255.
-
-    # TODO: add back?
-    # clipping for zernike phase halo artifacts
-    # output_image[output_image > 180] = 180
-    # output_image[output_image < 70] = 70
-
 
     output_image = output_image.astype('uint8')
 
