@@ -45,18 +45,6 @@ class CoreSpaceMExperiment(BaseExperiment):
                     self.set(name_config_property, config_property)
 
 
-    # ------------------------------------------------------------------------------------------------------
-    # Basic modifications to change the name of the configuration file from 'train_config' to 'main_config'
-    def read_config_file(self, file_name='main_config.yml', **kwargs):
-        return super(CoreSpaceMExperiment, self).read_config_file(file_name=file_name, **kwargs)
-
-    def inherit_configuration(self, from_experiment_directory, file_name='main_config.yml', **kwargs):
-        return super(CoreSpaceMExperiment, self).inherit_configuration(from_experiment_directory, file_name=file_name,
-                                                                         **kwargs)
-
-    def dump_configuration(self, file_name='main_config.yml'):
-        return super(CoreSpaceMExperiment, self).dump_configuration(file_name=file_name)
-    # ------------------------------------------------------------------------------------------------------
 
 
 class CellposeBaseExperiment(CoreSpaceMExperiment):
@@ -160,8 +148,12 @@ class CellposeBaseExperiment(CoreSpaceMExperiment):
         # self.convert_multiple_cellpose_output_to_zarr()
 
     def convert_multiple_cellpose_output_to_zarr(self):
+        data_zarr_group = self.get("preprocessing/data_zarr_group", ensure_exists=True)
+        csv_file = data_zarr_group.replace(".zarr", ".csv")
+        print("Converting cellpose results to zarr")
         zarr_path_predictions, collected_model_names = convert_multiple_cellpose_output_to_zarr(
-            os.path.join(self.experiment_directory, "cellpose_predictions"))
+            os.path.join(self.experiment_directory, "cellpose_predictions"),
+        csv_file=csv_file)
 
         # Save data in config file:
         self.set("cellpose_inference/zarr_path_predictions", self.zarr_path_predictions)
@@ -184,6 +176,8 @@ class CellposeBaseExperiment(CoreSpaceMExperiment):
         datasets_to_export = export_images_from_zarr_kwargs.pop("datasets_to_export")
         for idx in range(len(datasets_to_export)):
             datasets_to_export[idx]["z_path"] = zarr_path_predictions
+
+        print("Exporting result images to original folder structure...")
 
         # Export images in the original structure:
         export_images_from_zarr(export_dir,

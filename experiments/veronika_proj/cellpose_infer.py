@@ -13,7 +13,7 @@ from segmUtils.io.export_images_from_zarr import export_images_from_zarr
 from segmUtils.preprocessing.preprocessing import convert_images_to_zarr_dataset, read_uint8_img, \
     read_segmentation_from_file
 from segmfriends.io.images import write_segm_to_file
-from segmfriends.speedrun_exps.utils import process_speedrun_sys_argv
+from speedrun import process_speedrun_sys_argv
 from segmfriends.utils import check_dir_and_create
 
 from speedrun import BaseExperiment
@@ -25,6 +25,7 @@ from segmUtils.preprocessing import preprocessing as spacem_preproc
 from segmUtils.segmentation.cellpose import infer as cellpose_infer
 from segmUtils.postprocessing.convert_to_zarr import convert_segmentations_to_zarr, \
     convert_multiple_cellpose_output_to_zarr
+
 
 
 class MacrophagesExperiment(CellposeBaseExperiment):
@@ -41,12 +42,13 @@ class MacrophagesExperiment(CellposeBaseExperiment):
             sem_segm_kwargs.get("red_channel_name", "mCherry")
         )
 
+        print("Computing semantic segmentation...")
         for segm_data in sem_segm_kwargs.get("instance_segm_to_process", []):
             GFP_segm = zarr_utils.load_array_from_zarr_group(
                 zarr_path_predictions,
                 segm_data["instance_segm_path"]
             )
-
+            GFP_segm, _, _ = vigra.analysis.relabelConsecutive(GFP_segm.astype("uint32"))
             # Compute mCherry segmentation:
             mCherry_mask = mCherry_ch >= sem_segm_kwargs.get("red_ch_thresh", 13)
 
@@ -57,16 +59,19 @@ class MacrophagesExperiment(CellposeBaseExperiment):
             #     mCherry_segm[z] = vigra.analysis.labelImage(mCherry_mask[z]) + max_label
             #     max_label += mCherry_segm[z].max() + 1
 
+            # TODO: check for nan values in the segmentation (and corner)
             rag = nifty.graph.rag.gridRag(GFP_segm.astype('uint32'))
-            _, node_feat = nifty.graph.rag.accumulateMeanAndLength(rag, mCherry_ch.astype('float32'))
+            _, node_feat = nifty.graph.rag.accumulateMeanAndLength(rag, mCherry_mask.astype('float32'))
             # node_feat = nifty.graph.rag.accumulateNodeStandartFeatures(rag, mCherry_ch.astype('float32'), minVal=0., maxVal=255.)
             mean_mCherry_values = node_feat[:, [0]]
-
-            mean_mCherry_values[np.isnan(mean_mCherry_values)] = 0
+            assert np.isnan(mean_mCherry_values).sum() == 0, "Something went wrong"
+            size_macrophages = node_feat[:, [1]]
+            size_eaten_mCherry = mean_mCherry_values*size_macrophages
+            # mean_mCherry_values[np.isnan(mean_mCherry_values)] = 0
 
             # Set segments with mCheery-mean > 2.0 as active:
             sem_mask = np.ones_like(mean_mCherry_values)
-            sem_mask[mean_mCherry_values >= sem_segm_kwargs.get("red_ch_cell_mean_thresh", 2.)] = 2.
+            sem_mask[size_eaten_mCherry >= sem_segm_kwargs.get("size_eaten_mCherry_thresh", 10)] = 2.
 
             # mapped_feat = ntools.mapFeaturesToLabelArray(GFP_segm, mean_mCherry_values, ignore_label=0, fill_value=-1)[...,0]
             mapped_sem_segm = ntools.mapFeaturesToLabelArray(GFP_segm, sem_mask, ignore_label=0, fill_value=0)[
@@ -82,7 +87,7 @@ class MacrophagesExperiment(CellposeBaseExperiment):
             for z in range(mapped_sem_segm.shape[0]):
                 background_mask = final_segm[z] == 0
                 final_segm[z] = vigra.analysis.labelImageWithBackground(final_segm[z].astype('uint32')) + max_label
-                final_segm[z][background_mask] = 0
+                final_segm[z][background_mask] = 0 # TODO: not necessary anymore
                 max_label += final_segm[z].max() + 1
 
             def get_size_map(label_image):
@@ -131,6 +136,9 @@ class MacrophagesExperiment(CellposeBaseExperiment):
         for idx in range(len(datasets_to_export)):
             datasets_to_export[idx]["z_path"] = zarr_path_predictions
 
+        print("Exporting result images to original folder structure...")
+
+
         # Export images in the original structure:
         export_images_from_zarr(export_dir,
                                 csv_config_path,
@@ -141,6 +149,7 @@ class MacrophagesExperiment(CellposeBaseExperiment):
     def convert_sem_segm_to_csv(self):
         export_dir = os.path.join(self.experiment_directory, "exported_results")
 
+        print("Converting semantic segmentation to csv format...")
         df = convert_images_to_zarr_dataset(input_dir_path=export_dir,
                                             # ensure_all_channel_existance=True,
                                             rename_unique=False,
@@ -203,7 +212,8 @@ class MacrophagesExperiment(CellposeBaseExperiment):
 
 if __name__ == '__main__':
     source_path = os.path.dirname(os.path.realpath(__file__))
-    sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_rel_path="./configs")
+    sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_dir_path="./configs",
+                                         default_exp_dir_path="/scratch/bailoni/projects/cellpose_projects")
 
     cls = MacrophagesExperiment
     cls().run()

@@ -1,11 +1,10 @@
-# TODO: afternoon
-#   - possibly, fix and plot npy
+# TODO:  fix and plot cellpose flows
 
 methods_to_run:
-#  - preprocessing
-#  - generate_cellpose_input
-#  - cellpose_inference
-#  - convert_multiple_cellpose_output_to_zarr
+  - preprocessing
+  - generate_cellpose_input
+  - cellpose_inference
+  - convert_multiple_cellpose_output_to_zarr
   - export_results
   - compute_scores
 
@@ -19,7 +18,6 @@ preprocessing:
   channels_to_process:
     - BF
     - DAPI
-#  TODO: add global config?
   martijn_examples:
     input_dir_path: "/scratch/bailoni/datasets/martijn/CellSegmentationExamples"
     projectdir_depth: -2

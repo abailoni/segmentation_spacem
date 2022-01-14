@@ -18,33 +18,40 @@ import segmfriends.utils.various as segm_utils
 import segmfriends.vis as segm_vis
 
 from segmfriends.io.zarr import append_arrays_to_zarr
+import pandas
 
 def convert_segmentations_to_zarr(pred_dir, out_zarr_path,
                                          model_name,
+                                        csv_file_path,
                                          pred_filter="_masks",
                                          pred_extension=".png"):
-    # FIXME: make sure that order is the same (at the moment it works with sorting)
     assert os.path.exists(pred_dir)
     saved_images = 0
     max_label = 0
-    for root, dirs, files in os.walk(pred_dir):
-        for filename in sorted(files):
-            file_basename, file_extension = os.path.splitext(filename)
-            if file_basename.endswith(pred_filter) and file_extension == pred_extension:
-                # Load segmentation:
-                pred_segm = imageio.imread(os.path.join(root, filename)).astype('uint32')
-                pred_segm[pred_segm != 0] += max_label
-                max_label = pred_segm.max() + 1
-                append_arrays_to_zarr(out_zarr_path, add_array_dimensions=True,
-                                      **{model_name: pred_segm}
-                                      )
-                saved_images += 1
-        # Only explore first directory:
-        break
+
+    # for root, dirs, files in os.walk(pred_dir):
+    #     for filename in sorted(files):
+    filenames = pandas.read_csv(csv_file_path)
+    for i, filename in enumerate(filenames["Out filename"]):
+        file_basename, file_extension = os.path.splitext(filename)
+        # FIXME: generalize and use pred_filter instead
+        pred_name = file_basename + "_cp_masks.png"
+        print(pred_name)
+        pred_path = os.path.join(pred_dir, pred_name)
+        assert os.path.exists(pred_path)
+        pred_segm = imageio.imread(pred_path).astype('uint32')
+        pred_segm[pred_segm != 0] += max_label
+        max_label = pred_segm.max() + 1
+        append_arrays_to_zarr(out_zarr_path, add_array_dimensions=True,
+                              **{model_name: pred_segm}
+                              )
+        saved_images += 1
 
     assert saved_images, "No segmentations found in given folder"
 
-def convert_multiple_cellpose_output_to_zarr(main_pred_directory, delete_previous=True):
+def convert_multiple_cellpose_output_to_zarr(main_pred_directory,
+                                             csv_file,
+                                             delete_previous=True):
     zarr_filename = "predictions_collected.zarr"
     out_zarr_group_path = os.path.join(main_pred_directory, zarr_filename)
 
@@ -58,7 +65,8 @@ def convert_multiple_cellpose_output_to_zarr(main_pred_directory, delete_previou
                 convert_segmentations_to_zarr(
                     pred_dir=os.path.join(main_pred_directory, model_name),
                     out_zarr_path=out_zarr_group_path,
-                    model_name=model_name
+                    model_name=model_name,
+                    csv_file_path=csv_file
                 )
             collected_model_names.append(model_name)
         # Only check the directory top-level:

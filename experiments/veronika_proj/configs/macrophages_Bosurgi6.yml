@@ -1,12 +1,13 @@
 methods_to_run:
-  - preprocessing
-  - generate_cellpose_input
-  - cellpose_inference
-  - convert_multiple_cellpose_output_to_zarr
+#  - preprocessing
+#  - generate_cellpose_input
+#  - cellpose_inference
+#  - convert_multiple_cellpose_output_to_zarr
   - compute_semantic_segm
   - export_results
   - convert_sem_segm_to_csv
-#  - test_enhance
+##  - test_enhance
+
 
 
 preprocessing:
@@ -16,8 +17,10 @@ preprocessing:
     - mCherry
     - GFP
     - DAPI
+    - BF1
   main_dataset:
-    input_dir_path: "/g/scb/alexandr/shared/Jeany/Veronika/"
+#    input_dir_path: "/g/scb/alexandr/shared/Jeany/Veronika/"
+    input_dir_path: "/g/scb/alexandr/shared/Jeany/Veronika/20211130/"
     projectdir_depth: -4
 #    precrop: "5400:7600, 5900:9300"
 #    max_nb_images: 1
@@ -26,7 +29,7 @@ preprocessing:
     mCherry: "_ch_0"
     GFP: "_ch_1"
     DAPI: "_ch_2"
-#    BF1: "_ch_3"
+    BF1: "_ch_3"
 #    BF2: "_ch_4"
 #    BF3: "_ch_5"
     verbose: True
@@ -58,8 +61,8 @@ cellpose_inference:
 compute_semantic_segm:
   compute_semantic_segm_kwargs:
     red_channel_name: "mCherry"
-    red_ch_thresh: 25 # How high the red-signal should be to detect a red segment
-    red_ch_cell_mean_thresh: 20. # How high the avg red-signal should be over a cell to label it as "infected"
+    red_ch_thresh: 38 # How high the red-signal should be to detect a mCherry cell
+    size_eaten_mCherry_thresh: 15 # Minimum size of eaten-mCherry-cell (included in macrophage) to label the macrophage as "infected"
     size_threshold: 50
     instance_segm_to_process:
       - {instance_segm_path: "cyto2_diamEst"}
@@ -67,7 +70,7 @@ compute_semantic_segm:
 
 export_results:
   export_images_from_zarr_kwargs:
-    filter_main_image_in_csv: "_ch_2"
+    filter_main_image_in_csv: "_ch_3"
     datasets_to_export:
 #      - {inner_path: "cyto2_diamEst", out_filter: "_cell_segm"}
       - {inner_path: "final_segmentation", out_filter: "_cell_segm"}

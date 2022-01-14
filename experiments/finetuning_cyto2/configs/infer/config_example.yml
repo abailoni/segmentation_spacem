@@ -1,0 +1,45 @@
+# Decide which parts of the experiment should be executed
+# (comment out those that should be skipped):
+methods_to_run:
+  - convert_data_to_zarr
+  - preprocessing
+  - generate_cellpose_input
+  - cellpose_inference
+  - convert_multiple_cellpose_output_to_zarr
+  - export_results
+  - compute_scores
+
+# Parameters used by the "convert_data_to_zarr" step:
+convert_data_to_zarr:
+  out_zarr_group: "/scratch/bailoni/datasets/combined/some_images/data.zarr"
+  datasets_to_process:
+    - alex_labels
+  channels_to_process:
+    - BF
+    - DAPI
+  alex_labels:
+    input_dir_path: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original"
+    projectdir_depth: -1
+    BF: "_c0_img"
+    extension: ".tif"
+    DAPI: "$ZERO"
+  alyona_cocultur:
+    input_dir_path: "/scratch/bailoni/datasets/alyona/20210823_AB_DKFZCocultur_analysis"
+    projectdir_depth: -4
+    precrop: "2000:3000, 2000:3000"
+    BF: "_c0"
+    DAPI: "_c1"
+  martijn_examples:
+    input_dir_path: "/scratch/bailoni/datasets/martijn/CellSegmentationExamples"
+    projectdir_depth: -2
+    precrop: "2000:3000, 2000:3000"
+    BF: "_c0"
+    DAPI: "_c1"
+  val_alex_labels:
+    input_dir_path: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original/valid"
+    BF: "_c0_img"
+    extension: ".tif"
+    DAPI: "$ZERO"
+
+
+

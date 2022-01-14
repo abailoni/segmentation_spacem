@@ -31,12 +31,18 @@ def read_uint8_img(img_path, add_all_channels_if_needed=True):
 
     extension = os.path.splitext(img_path)[1]
     if extension == ".tif" or extension == ".tiff":
-        img = cv2.imread(img_path)
+        # img = cv2.imread(img_path)
+        img = cv2.imread(img_path, cv2.IMREAD_ANYDEPTH)
+        # print(img.dtype, img.min(), img.max())
         # Sometimes some images are loaded in float and cannot be automatically converted to uint8:
-        if img is None:
-            img = cv2.imread(img_path, cv2.IMREAD_ANYDEPTH)
-            img = img - img.min()
-            img = (img / img.max() * 255.).astype('uint8')
+        # FIXME: check type and then convert to uint8 (or uint16??)
+        if img.dtype == 'uint16':
+            img = cv2.convertScaleAbs(img, alpha=(255.0/65535.0))
+        assert img.dtype == 'uint8'
+            # # img = cv2.imread(img_path, cv2.IMREAD_ANYDEPTH)
+        print(img.dtype, img.min(), img.max())
+            # img = img - img.min()
+            # img = (img / img.max() * 255.).astype('uint8')
     elif extension == ".png":
         img = imageio.imread(img_path)
     else:
@@ -153,6 +159,7 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
                                         raise ValueError("Channel {} not found for image {} in {}".format(ch_name, filename, root))
                                     else:
                                         continue
+                                print(ch_name)
                                 new_ch_img = read_image(image_path)
                                 assert new_ch_img.shape == shape
                                 new_image_path = os.path.relpath(image_path, input_dir_path)
