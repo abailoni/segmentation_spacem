@@ -39,7 +39,7 @@ def multiple_cellpose_inference(tested_models,
                 check_dir_and_create(out_dir)
 
                 # TODO: find a way to specify ipython path for debugging with PyCharm
-                command = "/scratch/bailoni/miniconda3/envs/pyT17/bin/ipython -m cellpose " \
+                command = "/scratch/bailoni/miniconda3/envs/pyT17_2/bin/ipython -m cellpose " \
                           "-- --use_gpu --dir {} --savedir {} --pretrained_model {} " \
                           "--save_png --diameter {} " \
                           "--use_size_model ".format(

@@ -1,11 +1,12 @@
 import numpy as np
+from speedrun import locate
 
 from inferno.io.volumetric.volumetric_utils import slidingwindowslices
 import os
 import json, cv2, random
 import shutil
 
-from segmUtils.preprocessing.convert_to_cellpose_style import convert_to_cellpose_style
+from segmUtils.preprocessing.process_images import convert_to_cellpose_style
 from segmfriends.utils.various import check_dir_and_create
 try:
     from ..LIVECellutils import preprocessing as preprocess_LIVEcell
@@ -56,6 +57,17 @@ def read_uint8_img(img_path, add_all_channels_if_needed=True):
     return img
 
 
+def apply_preprocessing_to_image(image, ch_name, preprocessing_specs):
+    if ch_name in preprocessing_specs:
+        all_prep_funcs = preprocessing_specs[ch_name]
+        all_prep_funcs = all_prep_funcs if isinstance(all_prep_funcs, list) else [all_prep_funcs]
+        for prep_fct_specs in all_prep_funcs:
+            assert isinstance(prep_fct_specs, dict)
+            prep_kwargs = prep_fct_specs["function_kwargs"]
+            preprocessing_function = locate(prep_fct_specs["function_name"], [])
+            image = preprocessing_function(image, **prep_kwargs)
+    return image
+
 def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size=None, projectdir_depth=None,
                                    starting_index=0, max_nb_images=None,
                                    ensure_all_channel_existance=True,
@@ -67,7 +79,9 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
                                    extension=None,
                                    delete_previous_zarr=True,
                                    save_to_zarr=True,
-                                   verbose=False, **channels_filters):
+                                   verbose=False,
+                                   preprocessing=None,
+                                   **channels_filters):
     # TODO: give a better name (considering options to only get paths in a folder)
     """
     :param channels_filters: Dictionary of channel names and associated ending-filename-filters. For example:
@@ -79,6 +93,9 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
     :param delete_previous_zarr: by default, set to True delete previous to avoid inconsistencies. Can be set to False,
             but use with care.
     """
+    preprocessing = {} if preprocessing is None else preprocessing
+    assert isinstance(preprocessing, dict)
+
     if save_to_zarr:
         assert isinstance(out_zarr_path, str)
 
@@ -135,6 +152,9 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
                     main_ch_path = os.path.join(root, filename)
                     # By default, BGR is read, so remove channel dimension:
                     main_ch_img = read_image(main_ch_path)
+                    print(main_ch_name, main_ch_img.max(), main_ch_img.min(), main_ch_img.mean())
+                    main_ch_img = apply_preprocessing_to_image(main_ch_img, main_ch_name, preprocessing)
+
                     shape = main_ch_img.shape
 
                     # Save main channel in zarr file:
@@ -159,9 +179,11 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
                                         raise ValueError("Channel {} not found for image {} in {}".format(ch_name, filename, root))
                                     else:
                                         continue
-                                print(ch_name)
+                                # print(ch_name)
                                 new_ch_img = read_image(image_path)
                                 assert new_ch_img.shape == shape
+                                print(ch_name, new_ch_img.max(), new_ch_img.min(), new_ch_img.mean())
+                                new_ch_img = apply_preprocessing_to_image(new_ch_img, ch_name, preprocessing)
                                 new_image_path = os.path.relpath(image_path, input_dir_path)
                             zarr_kwargs[ch_name] = new_ch_img
                             input_image_paths.append(new_image_path)
