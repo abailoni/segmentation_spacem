@@ -1,0 +1,119 @@
+methods_to_run:
+#  - preprocessing
+  - generate_cellpose_input
+  - cellpose_inference
+  - convert_multiple_cellpose_output_to_zarr
+  - export_results
+#  - compute_scores
+
+
+
+preprocessing:
+  data_zarr_group: "/scratch/bailoni/projects/amandine/segm_15_03_2022/infer_cellpose/data.zarr"
+  datasets_to_process:
+    - main_dataset
+  channels_to_process:
+    - BF
+    - DAPI
+    - EXTRA
+  main_dataset:
+    input_dir_path: "/g/scb/alexandr/shared/alberto/datasets/amandine/segm_15_03_2022"
+    projectdir_depth: -2
+    folder_filter: "analysis"
+#    crop_size: [500, 500]
+#    precrop: "2000:3000, 2000:3000"
+#    max_nb_images: 2
+    BF: "_c0"
+    DAPI: "_c1"
+    EXTRA: "_c2"
+    verbose: True
+    preprocessing:
+      BF:
+        - {
+          function_name: "segmUtils.LIVECellutils.preprocessing.preprocess",
+          function_kwargs: { }
+#          function_name: "segmUtils.preprocessing.process_images.convert_to_cellpose_style",
+#          function_kwargs: { method: "subtract" }
+        }
+#        - {
+#          function_name: "segmUtils.preprocessing.process_images.clip_image_values",
+#          function_kwargs: { vmax: 134,
+#                             vmin: 112,
+#                             invert: True}
+#        }
+      DAPI:
+        - {
+          function_name: "segmUtils.preprocessing.process_images.clip_image_values",
+          function_kwargs: { vmax: 60,
+                             vmin: 0,
+                             invert: False }
+        }
+      EXTRA:
+        - {
+          function_name: "segmUtils.preprocessing.process_images.clip_image_values",
+          function_kwargs: { vmax: 16,
+                             vmin: 0,
+                             invert: False }
+        }
+
+
+generate_cellpose_input:
+  generate_for:
+    - "cellpose_inference"
+  convert_to_cellpose_kwargs:
+    cellpose_ch0: "fused_ch"
+    cellpose_ch1: "DAPI"
+
+
+cellpose_inference:
+  input_dir: "$EXP_DIR/cellpose_inputs"
+  multiple_cellpose_inference_kwargs:
+    estimate_diameter: [False]
+    overwrite_estimate_diameter: {}
+#      cyto2: True
+    diameter: 40
+    chan: 2 # Green
+    chan2: 1 # Red
+    mask_filter: "_masks"
+    cellpose_infer_args:
+      - no_npy
+
+    tested_models:
+      cyto2: "cyto2"
+#      cleaned_finetuned_LIVECell_v1: "/scratch/bailoni/datasets/LIVECell/panoptic/livecell_coco_train_cleaned/models/cellpose_residual_on_style_on_concatenation_off_livecell_coco_train_cleaned_2021_10_22_17_08_49.114912"
+#      cyto2_alex_CP: ../train/cyto2_alex_plus_CP/$LATEST
+#      cyto2_alex: ../train/cyto2_alex/$LATEST
+#      scratch_alex_CP: ../train/scratch_alex_plus_CP/$LATEST
+
+
+export_results:
+  export_images_from_zarr_kwargs:
+#    TODO: specify main channel name in cvs and get filters from preprocessing section
+    filter_main_image_in_csv:
+      main_dataset: "_c0"
+#    export_in_external_segm_folder: True
+    datasets_to_export:
+      - {inner_path: "cyto2_noDiamEst", out_filter: "_cellSegm"}
+#      - {inner_path: "cleaned_finetuned_LIVECell_v1_noDiamEst", out_filter: "_liveCell"}
+
+#compute_scores:
+#  configs_to_evaluate:
+#    - cyto2
+#    - cyto2_alex_CP
+#    - cyto2_alex
+#    - scratch_alex_CP
+#  global_config:
+#    dataset_name: alex_labels
+#    GT_dir: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original"
+#    GT_filter: "_c0_masks"
+#    GT_extension: ".png"
+#    only_look_at_top_level: False
+#    AP_thresholds: [0.5, 0.75]
+#  cyto2:
+#    pred_filter: "_cyto2"
+#  cyto2_alex_CP:
+#    pred_filter: "_cyto2_alex_CP"
+#  cyto2_alex:
+#    pred_filter: "_cyto2_alex"
+#  scratch_alex_CP:
+#    pred_filter: "_scratch_alex_CP"

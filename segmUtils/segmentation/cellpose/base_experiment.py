@@ -9,7 +9,7 @@ import pandas
 
 from segmUtils.io.export_images_from_zarr import export_images_from_zarr
 from segmUtils.postprocessing.compute_scores import compute_scores
-from segmfriends.speedrun_exps.utils import process_speedrun_sys_argv
+from speedrun.process_sys_argv import process_speedrun_sys_argv
 from segmfriends.utils import check_dir_and_create
 
 from speedrun import BaseExperiment

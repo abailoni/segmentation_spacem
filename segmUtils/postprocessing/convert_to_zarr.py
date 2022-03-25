@@ -38,7 +38,7 @@ def convert_segmentations_to_zarr(pred_dir, out_zarr_path,
         pred_name = file_basename + "_cp_masks.png"
         print(pred_name)
         pred_path = os.path.join(pred_dir, pred_name)
-        assert os.path.exists(pred_path)
+        assert os.path.exists(pred_path), pred_path
         pred_segm = imageio.imread(pred_path).astype('uint32')
         pred_segm[pred_segm != 0] += max_label
         max_label = pred_segm.max() + 1

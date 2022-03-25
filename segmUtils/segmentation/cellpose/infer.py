@@ -1,4 +1,5 @@
 import os
+import sys
 from distutils.dir_util import copy_tree
 
 import shutil
@@ -24,7 +25,8 @@ def multiple_cellpose_inference(tested_models,
         for model_name, model_path in tested_models.items():
             est_diam = overwrite_estimate_diameter[
                 model_name] if model_name in overwrite_estimate_diameter else default_est_diam
-            diameter = 0 if est_diam else 30
+            default_diameter = cellpose_infer_kwargs.pop("diameter", 30)
+            diameter = 0 if est_diam else default_diameter
             # Update model names accordingly:
             model_name = model_name + "_diamEst" if est_diam else model_name + "_noDiamEst"
 
@@ -39,10 +41,12 @@ def multiple_cellpose_inference(tested_models,
                 check_dir_and_create(out_dir)
 
                 # TODO: find a way to specify ipython path for debugging with PyCharm
-                command = "/scratch/bailoni/miniconda3/envs/pyT17_2/bin/ipython -m cellpose " \
-                          "-- --use_gpu --dir {} --savedir {} --pretrained_model {} " \
-                          "--save_png --diameter {} " \
-                          "--use_size_model ".format(
+                python_interpreter = os.environ['_']
+                command = "{} -m cellpose " \
+                          "{} --use_gpu --dir {} --savedir {} --pretrained_model {} " \
+                          "--save_png --diameter {} ".format(
+                    python_interpreter,
+                    "--" if "ipython" in python_interpreter else "",
                     input_dir,
                     out_dir,
                     model_path,
@@ -59,3 +63,4 @@ def multiple_cellpose_inference(tested_models,
                     command += "--{} {} ".format(kwarg, cellpose_infer_kwargs[kwarg])
                 print(command)
                 os.system(command)
+#                 TODO: stop if command fails
