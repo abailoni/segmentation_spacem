@@ -64,6 +64,7 @@ def apply_preprocessing_to_image(image, ch_name, preprocessing_specs):
         for prep_fct_specs in all_prep_funcs:
             assert isinstance(prep_fct_specs, dict)
             prep_kwargs = prep_fct_specs["function_kwargs"]
+            print("Applying {} preproc function...".format(prep_fct_specs["function_name"]))
             preprocessing_function = locate(prep_fct_specs["function_name"], [])
             image = preprocessing_function(image, **prep_kwargs)
     return image
@@ -181,7 +182,13 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
                                         continue
                                 # print(ch_name)
                                 new_ch_img = read_image(image_path)
-                                assert new_ch_img.shape == shape
+                                if new_ch_img.shape != shape:
+                                    print("Warning! Image channels have different dimensions!",
+                                          "{}: {}, Main channel: {}. Image path: {}".format(
+                                              ch_name, new_ch_img.shape, shape, image_path)
+                                          )
+                                # assert new_ch_img.shape == shape, "{}: {}, Main channel: {}. Image path: {}".format(
+                                #     ch_name, new_ch_img.shape, shape,image_path)
                                 print(ch_name, new_ch_img.max(), new_ch_img.min(), new_ch_img.mean())
                                 new_ch_img = apply_preprocessing_to_image(new_ch_img, ch_name, preprocessing)
                                 new_image_path = os.path.relpath(image_path, input_dir_path)

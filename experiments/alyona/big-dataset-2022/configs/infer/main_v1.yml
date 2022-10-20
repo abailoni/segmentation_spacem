@@ -1,0 +1,89 @@
+methods_to_run:
+#  - preprocessing
+#  - generate_cellpose_input
+#  - cellpose_inference
+  - convert_multiple_cellpose_output_to_zarr
+  - export_results
+#  - compute_scores
+
+
+preprocessing:
+  data_zarr_group: "/scratch/bailoni/datasets/alyona/big-dataset-2022/data.zarr"
+#  data_zarr_group: "$EXP_DIR/data.zarr"
+  datasets_to_process:
+    - all_datasets
+  channels_to_process:
+    - BF
+    - DAPI
+#    - GFP
+  all_datasets:
+    input_dir_path: "/scratch/bailoni/projects/alyona"
+    projectdir_depth: -4
+    folder_filter: "analysis/transformation/cropped_pre_maldi_channels"
+#    crop_size: [500, 500]
+#    precrop: "2000:3000, 2000:3000"
+#    max_nb_images: 2
+    BF: "_c0"
+    DAPI: "_c1"
+#    GFP: "_c2"
+    verbose: True
+    preprocessing:
+      BF:
+        - {
+          function_name: "segmUtils.LIVECellutils.preprocessing.preprocess",
+          function_kwargs: { }
+#            function_name: "segmUtils.preprocessing.process_images.convert_to_cellpose_style",
+#          function_kwargs: { method: "subtract" }
+        }
+        - {
+          function_name: "segmUtils.preprocessing.process_images.clip_image_values",
+          function_kwargs: { vmax: 138,
+                             vmin: 99,
+                             invert: True}
+        }
+#
+      DAPI:
+        - {
+          function_name: "segmUtils.preprocessing.process_images.clip_image_values",
+          function_kwargs: { vmax: 20,
+              vmin: 0,
+              invert: False}
+        }
+
+
+generate_cellpose_input:
+  generate_for:
+    - "cellpose_inference"
+  convert_to_cellpose_kwargs:
+    cellpose_ch0: "BF"
+    cellpose_ch1: "DAPI"
+
+
+cellpose_inference:
+  input_dir: "$EXP_DIR/cellpose_inputs"
+  multiple_cellpose_inference_kwargs:
+    estimate_diameter: [False]
+    diameter: 35
+    overwrite_estimate_diameter:
+      cyto2: True
+    chan: 2 # Green
+    chan2: 1 # Red
+    mask_filter: "_masks"
+#    cellpose_infer_args:
+#      - no_npy
+
+    tested_models:
+      cyto2: "cyto2"
+#      alyona_model: "/scratch/bailoni/projects/alyona/20220322_AB_DKFZHypoxia/cellpose_residual_on_style_on_concatenation_off_train_2021_03_15_18_30_20.533388"
+
+
+
+export_results:
+  export_images_from_zarr_kwargs:
+#    TODO: specify main channel name in cvs and get filters from preprocessing section
+    filter_main_image_in_csv:
+      all_datasets: "_c0"
+    export_in_external_segm_folder: True
+    datasets_to_export:
+#      - {inner_path: "cyto2_diamEst", out_filter: "_cellSegm"}
+      - {inner_path: "cyto2_diamEst"}

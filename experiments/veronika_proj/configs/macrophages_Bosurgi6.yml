@@ -1,11 +1,11 @@
 methods_to_run:
-#  - preprocessing
+  - preprocessing
 #  - generate_cellpose_input
 #  - cellpose_inference
 #  - convert_multiple_cellpose_output_to_zarr
-  - compute_semantic_segm
-  - export_results
-  - convert_sem_segm_to_csv
+#  - compute_semantic_segm
+#  - export_results
+#  - convert_sem_segm_to_csv
 ##  - test_enhance
 
 
@@ -20,7 +20,7 @@ preprocessing:
     - BF1
   main_dataset:
 #    input_dir_path: "/g/scb/alexandr/shared/Jeany/Veronika/"
-    input_dir_path: "/g/scb/alexandr/shared/Jeany/Veronika/20211130/"
+    input_dir_path: "/g/scb/alexandr/shared/Jeany/Macrophages_veronika/20211130/"
     projectdir_depth: -4
 #    precrop: "5400:7600, 5900:9300"
 #    max_nb_images: 1

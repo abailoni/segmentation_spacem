@@ -1,0 +1,18 @@
+
+preprocessing:
+  data_zarr_group: "/scratch/bailoni/datasets/gastrosome_full/data_original.zarr"
+  all_datasets:
+    preprocessing:
+      BF: "KeyDeleter"
+      DAPI: "KeyDeleter"
+
+
+cellpose_inference:
+  multiple_cellpose_inference_kwargs:
+    tested_models:
+#      cyto2: "KeyDeleter"
+      model1: "KeyDeleter"
+      model1b: "KeyDeleter"
+      model2: "/scratch/bailoni/projects/gastrosome_processing_full/train-cellpose/CellposeTraining/model_trained_wo_preproc/cellpose_residual_on_style_on_concatenation_off_training_images_2022_06_02_14_12_57.179731"
+      model2b: "/scratch/bailoni/projects/gastrosome_processing_full/train-cellpose/CellposeTraining/model_1/training_images/models/cellpose_residual_on_style_on_concatenation_off_training_images_2022_06_02_15_09_29.190425"
+
