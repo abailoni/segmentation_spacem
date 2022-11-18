@@ -23,8 +23,9 @@ from segmUtils.postprocessing.convert_to_zarr import convert_segmentations_to_za
 if __name__ == '__main__':
     source_path = os.path.dirname(os.path.realpath(__file__))
     sys.argv = process_speedrun_sys_argv(sys.argv, source_path, default_config_dir_path="configs/infer",
-                                         default_exp_dir_path="/scratch/bailoni/projects/cellpose_inference_projects/jeany/oct_22")
+                                         default_exp_dir_path="/scratch/bailoni/projects/cellpose_inference_projects/nastia/2022-11-Tcells")
                                          # default_exp_dir_path="/scratch/bailoni/projects/spacem_cellpose_inference/jeany/oct_22")
+
 
     cls = CellposeBaseExperiment
     cls().run()
