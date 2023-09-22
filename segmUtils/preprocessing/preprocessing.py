@@ -74,7 +74,8 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
                                    ensure_all_channel_existance=True,
                                    rename_unique=True, max_nb_crops_per_image=None,
                                    general_filter=None,
-                                   folder_filter=None,
+                                   filename_filter_exclude=None,
+                                   filename_filter_include=None,
                                    precrop=None,
                                    dataset_name=None,
                                    extension=None,
@@ -96,6 +97,13 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
     """
     preprocessing = {} if preprocessing is None else preprocessing
     assert isinstance(preprocessing, dict)
+
+    if filename_filter_exclude is not None:
+        if not isinstance(filename_filter_exclude, (list, tuple)):
+            filename_filter_exclude = [filename_filter_exclude]
+    if filename_filter_include is not None:
+        if not isinstance(filename_filter_include, (list, tuple)):
+            filename_filter_include = [filename_filter_include]
 
     if save_to_zarr:
         assert isinstance(out_zarr_path, str)
@@ -137,10 +145,23 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
                         if general_filter not in file_basename:
                             continue
 
-                    # Check if we should skip this folder:
-                    if folder_filter is not None:
-                        if folder_filter not in root:
-                            continue
+                    full_path = os.path.join(root, filename)
+                    excluded = False
+                    # Check if we should skip this file:
+                    if filename_filter_include is not None:
+                        for filt in filename_filter_include:
+                            if filt not in full_path:
+                                excluded = True
+                                break
+
+                    if filename_filter_exclude is not None and not excluded:
+                        for filt in filename_filter_exclude:
+                            if filt in full_path:
+                                excluded = True
+                                break
+
+                    if excluded:
+                        continue
 
                     # Check for correct extension of raw file:
                     if extension is not None:

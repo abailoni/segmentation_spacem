@@ -1,0 +1,24 @@
+preprocessing:
+#  data_zarr_group: "/scratch/bailoni/projects/cellpose_inference_projects/jeany/2023-04-HTpaper/v1_small_no_prep.zarr"
+  main_dataset:
+    preprocessing:
+      BF: "KeyDeleter"
+      DAPI: "KeyDeleter"
+
+cellpose_inference:
+  multiple_cellpose_inference_kwargs:
+    diameter: 45
+    tested_models:
+      cyto2: KeyDeleter
+      new_model: "/scratch/bailoni/projects/cellpose_training_projects/jeany/2023-04-HTpaper/cellpose_residual_on_style_on_concatenation_off_training_images_2023_05_10_16_59_41.685960"
+#      trained_model_mine: "/scratch/bailoni/projects/cellpose_training_projects/jeany/2023-04-HTpaper/training_images_2/models/cellpose_residual_on_style_on_concatenation_off_training_images_2_2023_04_25_10_53_53.638405"
+#      trained_model_jeany: "/scratch/delafiori/PDAC/Cellpose/CellposeTraining/my_trained_model/training_images/models/cellpose_residual_on_style_on_concatenation_off_training_images_2023_04_11_06_32_48.697642"
+#      trained_server_1: "/scratch/bailoni/projects/cellpose_training_projects/jeany/2023-04-HTpaper/test_1_tool/cellpose_residual_on_style_on_concatenation_off_training_images_2023_05_02_15_35_14.870026"
+#      trained_server_def: "/scratch/bailoni/projects/cellpose_training_projects/jeany/2023-04-HTpaper/trained_model_def_parameters/cellpose_residual_on_style_on_concatenation_off_training_images_2023_05_03_10_42_18.224460"
+
+
+export_results:
+  export_images_from_zarr_kwargs:
+    datasets_to_export:
+      - {inner_path: "new_model_noDiamEst"}
+
