@@ -1,0 +1,115 @@
+methods_to_run:
+#  - preprocessing
+#  - generate_cellpose_input
+  - cellpose_inference
+  - convert_multiple_cellpose_output_to_zarr
+  - export_results
+#  - compute_scores
+
+
+
+preprocessing:
+  data_zarr_group: "/scratch/bailoni/projects/cellpose_inference_projects/australia/2023-09-neuron-progenitors-slide-2/v1.zarr"
+  datasets_to_process:
+    - main_dataset
+  channels_to_process:
+    - BF
+    - DAPI
+#    - EXTRA
+  main_dataset:
+    input_dir_path: "/scratch/bailoni/datasets/australia_project/data_neurons_sept_23/shared_data_progenitor/slide2_microscopy_renamed"
+    projectdir_depth: -4
+#    filename_filter_include:
+#     - "analysis/transformation/cropped_pre_maldi_channels"
+    filename_filter_exclude:
+      - "post_maldi"
+#    crop_size: [500, 500]
+    precrop: "2000:5000, 2000:5000"
+#    max_nb_images: 30
+    BF: "_ch1"
+    DAPI: "_ch0"
+    verbose: True
+    preprocessing:
+      {}
+#      BF:
+#        - {
+#          function_name: "segmUtils.LIVECellutils.preprocessing.preprocess",
+#          function_kwargs: { }
+##          function_name: "segmUtils.preprocessing.process_images.convert_to_cellpose_style",
+##          function_kwargs: { method: "subtract" }
+#        }
+#        - {
+#          function_name: "segmUtils.preprocessing.process_images.clip_image_values",
+#          function_kwargs: { vmax: 162,
+#                             vmin: 0,
+#                             invert: True}
+#        }
+#      DAPI:
+#        - {
+#          function_name: "segmUtils.preprocessing.process_images.clip_image_values",
+#          function_kwargs: { vmax: 133,
+#                             vmin: 0,
+#                             invert: False }
+#        }
+
+generate_cellpose_input:
+  generate_for:
+    - "cellpose_inference"
+  convert_to_cellpose_kwargs:
+    cellpose_ch0: "BF"
+    cellpose_ch1: "DAPI"
+
+
+cellpose_inference:
+  input_dir: "$EXP_DIR/cellpose_inputs"
+  multiple_cellpose_inference_kwargs:
+    estimate_diameter: [False]
+    overwrite_estimate_diameter:
+#      {}
+      cyto2: True
+    diameter: 20
+    chan: 2 # Green
+    chan2: 1 # Red
+    mask_filter: "_masks"
+#    flow_threshold: 0.7
+    cellpose_infer_args:
+      - no_npy
+
+    tested_models:
+#      cyto2: "cyto2"
+      trained_model: "/scratch/bailoni/projects/cellpose_training_projects/autralia/neuron_data_sept_23/train_cellpose/CellposeTraining/model_v1_20_09_23/cellpose_residual_on_style_on_concatenation_off_training_images_2023_09_20_14_34_29.619299"
+
+
+
+export_results:
+  export_images_from_zarr_kwargs:
+#    TODO: specify main channel name in cvs and get filters from preprocessing section
+    filter_main_image_in_csv:
+      main_dataset: "_ch1"
+    export_in_external_segm_folder: True
+    datasets_to_export:
+#      - {inner_path: "cyto2_diamEst"}
+      - {inner_path: "trained_model_noDiamEst"}
+#      - {inner_path: "naive_cells_noDiamEst"}
+
+#compute_scores:
+#  configs_to_evaluate:
+#    - cyto2
+#    - cyto2_alex_CP
+#    - cyto2_alex
+#    - scratch_alex_CP
+#  global_config:
+#    dataset_name: alex_labels
+#    GT_dir: "/scratch/bailoni/datasets/alex/210920_prostate-v1_cellpose-training-original"
+#    GT_filter: "_c0_masks"
+#    GT_extension: ".png"
+#    only_look_at_top_level: False
+#    AP_thresholds: [0.5, 0.75]
+#  cyto2:
+#    pred_filter: "_cyto2"
+#  cyto2_alex_CP:
+#    pred_filter: "_cyto2_alex_CP"
+#  cyto2_alex:
+#    pred_filter: "_cyto2_alex"
+#  scratch_alex_CP:
+#    pred_filter: "_scratch_alex_CP"
