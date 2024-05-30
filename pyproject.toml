@@ -9,7 +9,7 @@ readme = "README.md"
 authors = [
     {name = "Alberto Bailoni", email = "alberto.bailoni@embl.de"}
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Framework :: napari",
@@ -19,6 +19,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering :: Image Processing"
@@ -35,7 +36,6 @@ dependencies = [
     "tifffile",
     "ome-zarr",
     "speedrun @ git+https://github.com/abailoni/speedrun@master",
-    "inferno @ git+https://github.com/abailoni/inferno@my_dev",
     "imageio",
     "cellpose",
 ]

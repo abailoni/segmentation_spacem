@@ -1,7 +1,7 @@
 import numpy as np
 from speedrun import locate
 
-from inferno.io.volumetric.volumetric_utils import slidingwindowslices
+from segmUtils.utils.volumetric_utils import slidingwindowslices
 import os
 import json, cv2, random
 import shutil
