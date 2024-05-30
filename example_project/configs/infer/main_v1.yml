@@ -1,5 +1,5 @@
 # Which steps of the processing pipeline should be run?
-# Usually we run all of them, but you can also run only a subset of them and avoid repeating preprocessing for example
+# Usually we run all of them, but you can also comment some steps out and run only a subset of them (for example to avoid repeating preprocessing).
 # For each step, you find configuration options below.
 methods_to_run:
   - preprocessing
@@ -11,7 +11,7 @@ methods_to_run:
 
 preprocessing:
   # A zarr folder where the preprocessed data will be temporarely saved (usually on scratch)
-  data_zarr_group: "/scratch/bailoni/projects/cellpose_inference_projects/jeany/2023-04-HTpaper/v2.zarr"
+  data_zarr_group: "/scratch/bailoni/projects/cellpose_inference_projects/test_segm_tool/data_v1.zarr"
   # We can collect data from one or multiple directories on disk (each directory will usually contain a set of processed SpaceM 0.1 datasets).
   # Each of them is defined by a key (e.g. my_first_set_of_datasets) and the parameters/paths for this set of datasets are defined under the keys below.
   datasets_to_process:
@@ -24,7 +24,7 @@ preprocessing:
   # Parameters and paths for each set of datasets:
   my_first_set_of_datasets:
     # Directory path where the data is stored on disk (subfolders of this directory will contain the datasets).
-    input_dir_path: "/scratch/delafiori/PDAC/SpaceM"
+    input_dir_path: "/scratch/bailoni/projects/gastrosome_processing/initial_analysis/SpaceM_processing"
     # This is used to name the datasets in the zarr file. It is the depth of the project directory in the input_dir_path.
     # If the projet depth is -4 and a path of a matched image is "/scratch/delafiori/PDAC/SpaceM/S2_well4/analysis/transformation/cropped_pre_maldi_channels/pre_maldi_crop_ch0.tif",
     # the string "S2_well4" will be included in the dataset name.
@@ -38,8 +38,8 @@ preprocessing:
 #    crop_size: [500, 500] # For debugging, crop all images to crops of this size
 #    precrop: "1000:2000, 1000:2000" # For debugging, crop all images to this region before cropping to crop_size
 #    max_nb_images: 30 # For debugging, the maximum number of images to process. If not specified, all images will be processed.
-    BF: "_ch_0" # The string that is used to identify the BF channel in the filenames
-    DAPI: "_ch_1" # The string that is used to identify the DAPI channel in the filenames
+    BF: "_c0" # The string that is used to identify the BF channel in the filenames
+    DAPI: "_c1" # The string that is used to identify the DAPI channel in the filenames
     verbose: True # If True, print more information during processing
 
     # Possibly, apply some simple preprocessing steps to the images before running cellpose
@@ -80,6 +80,8 @@ cellpose_inference:
   input_dir: "$EXP_DIR/cellpose_inputs"
   multiple_cellpose_inference_kwargs:
     # Whether to estimate diameter or not:
+    # WARNING: diameter estimation does not seem to work well for finetuned models, so in that case it is better to set the diameter value manually to the average cell diameter found during training
+    #      (this value is displayed by cellpose in the shell when the finetuned model is used, so you can get it from there).
     estimate_diameter: [False]
     # For certain models, we overwrite the estimate_diameter option above (e.g. with cyto2 it may be worth trying to estimate the diameter)
     # Otherwise, leave this option empty:
@@ -101,36 +103,23 @@ cellpose_inference:
 #      trained_model: "/scratch/delafiori/PDAC/Cellpose/CellposeTraining/my_trained_model/training_images/models/cellpose_residual_on_style_on_concatenation_off_training_images_2023_04_11_06_32_48.697642"
 
 
+# --------------------------------------------------------------
+# EXPORTING SEGMENTATION RESULTS
+# Once you are happy with the results of the cellpose inference (after perhaps checking the results of the `convert_multiple_cellpose_output_to_zarr` step in neuroglancer with the provided notebook),
+# you can export the segmetation results to tif files, so they can be used in SpaceM.
+# This step `export_results` will export the segmentations using the same directory structure of the original datasets. Images will be found in the `/PATH/TO/DIR/NAME_OF_THE_RUN/exported_results` subdirectory.
+# You can either export only one segmentation from the different cellpose models that were run, or export all of them. If you export more than one, you can specify a suffix (see `out_filter` parameter below) that will be added to the original image name to identify the segmentation from each model. If out_filter is not given, a generic `cell_segmentation.tif`.
+# --------------------------------------------------------------
 export_results:
   export_images_from_zarr_kwargs:
     filter_main_image_in_csv:
-      my_first_set_of_datasets: "_ch_0" # specify the string identifying the main channel file (usually BrightField)
+      my_first_set_of_datasets: "_c0" # specify the string identifying the main channel file (usually BrightField)
 
     # The naming scheme of the zarr inner_paths below is the following:
     #  - "cellpose_model_name" + "_diamEst" if the diameter was estimated,
     #  - otherwise "cellpose_model_name" + "_noDiamEst"
-
-    # --------------------------------------------------------------
-    # CASE 1: If we want to export the results of a single cellpose model that was run, we can use the following:
-    # In this case, the exported segmentations will be saved in a folder structure that is equal to the original one (so you can easily merge them back into the original SpaceM processing directories).
-    export_in_external_segm_folder: True
     datasets_to_export:
-          - {inner_path: "trained_model_noDiamEst" }
-    # --------------------------------------------------------------
-
-
-#    # --------------------------------------------------------------
-#    # CASE 2: If we want to export the results of all cellpose models that were run, we can use the following:
-#    # Otherwise, all segmentations will be saved in the same folder.
-#    export_in_external_segm_folder: False
-#    datasets_to_export:
-#      - {
-#        inner_path: "cyto2_diamEst",
-#        out_filter: "_segm_cyto2" # In this case we should specify the suffix that will be added to the original image name to identify the segmentation from this model
-#      }
-#      - {
-#        inner_path: "trained_model_noDiamEst",
-#        out_filter: "_segm_trained_model" # In this case we should specify the suffix that will be added to the original image name to identify the segmentation from this model
-#      }
-#    # --------------------------------------------------------------
+          - {inner_path: "cyto2_diamEst"}
+#          - {inner_path: "cyto2_noDiamEst", out_filter: "_cyto_no_diam"}
+#          - {inner_path: "trained_model_noDiamEst", out_filter: "_my_model"}
 

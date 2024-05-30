@@ -41,7 +41,7 @@ def read_uint8_img(img_path, add_all_channels_if_needed=True):
             img = cv2.convertScaleAbs(img, alpha=(255.0/65535.0))
         assert img.dtype == 'uint8'
             # # img = cv2.imread(img_path, cv2.IMREAD_ANYDEPTH)
-        print(img.dtype, img.min(), img.max())
+        # print(img.dtype, img.min(), img.max())
             # img = img - img.min()
             # img = (img / img.max() * 255.).astype('uint8')
     elif extension == ".png":
@@ -174,7 +174,7 @@ def convert_images_to_zarr_dataset(input_dir_path, out_zarr_path=None, crop_size
                     main_ch_path = os.path.join(root, filename)
                     # By default, BGR is read, so remove channel dimension:
                     main_ch_img = read_image(main_ch_path)
-                    print(main_ch_name, main_ch_img.max(), main_ch_img.min(), main_ch_img.mean())
+                    # print(main_ch_name, main_ch_img.max(), main_ch_img.min(), main_ch_img.mean())
                     main_ch_img = apply_preprocessing_to_image(main_ch_img, main_ch_name, preprocessing)
 
                     shape = main_ch_img.shape

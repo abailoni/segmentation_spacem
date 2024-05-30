@@ -28,6 +28,8 @@ dependencies = [
     "numpy",
     "scipy",
     "h5py",
+    "pandas",
+    "matplotlib",
     "imageio",
     "imageio-ffmpeg",
     "opencv-python-headless",
@@ -36,8 +38,11 @@ dependencies = [
     "tifffile",
     "ome-zarr",
     "speedrun @ git+https://github.com/abailoni/speedrun@master",
+    "segmfriends @ git+https://github.com/abailoni/segmfriends@master",
     "imageio",
     "cellpose",
+    "jupyter",
+    "neuroglancer",
 ]
 dynamic = ["version"]
 

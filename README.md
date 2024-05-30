@@ -6,6 +6,7 @@ A very "early-development-stage" set of utilities to segment images using Cellpo
 
    ```bash
    conda create -n segmSpaceM python=3.8 pytorch torchvision torchaudio segmfriends pytorch-cuda=12.1 -c pytorch -c nvidia -c conda-forge -c abailoni
+   conda remove --force segmfriends
    conda activate segmSpaceM 
    ```
 
@@ -13,6 +14,7 @@ A very "early-development-stage" set of utilities to segment images using Cellpo
 
    ```bash
    conda create --prefix /path/to/folder/of/your/new/conda/env python=3.8 pytorch torchvision torchaudio segmfriends pytorch-cuda=12.1 -c pytorch -c nvidia -c conda-forge -c abailoni
+   conda remove --force segmfriends
    conda activate /path/to/folder/of/your/new/conda/env
    ```
 
@@ -36,6 +38,7 @@ A very "early-development-stage" set of utilities to segment images using Cellpo
    ```bash
    git clone https://github.com/abailoni/segmentation_spacem.git
    cd segmentation_spacem
+   conda activate segmSpaceM 
    pip install -e .
    ```
 
@@ -45,8 +48,23 @@ In the `example_project` directory of the repository you find an example of scri
 
 1. In the `infer_cellpose.py` script you will need to specify the path where you want to save the results.
 2. In the config file you will find comments guiding you on how to specify the paths to the images you want to process, which cellpose models you wish to run, etc.
-3. Once you exported the results, you will find the segmentations in the `exported_results` subdirectory of the path you specified in the `infer_cellpose.py` script.
+3. You will need a machine with a GPU in order to run the `segmentation` step of the pipeline (otherwise it will take very long). The other steps can be run also without GPU support
+4. Run the script with the following command:
+
+   ```bash
+   conda activate segmSpaceM 
+   CUDA_VISIBLE_DEVICES=0 ipython path/to/your/script/infer_cellpose.py -- NAME_OF_THE_RUN --inherit main_v1.yml
+   ```
+   
+    where `NAME_OF_THE_RUN` is the name you want to give to the run (it will be used to create a subdirectory in the path you specified in the `infer_cellpose.py` script), so that you can test several runs and preserve all the generated data. The `--inherit main_v1.yml` argument is used to specify the config file you want to use. You can create your own config file by copying the `main_v1.yml` file and adapting it to your needs.
+5. Once you exported the results, you will find the segmentations in the `NAME_OF_THE_RUN/exported_results` subdirectory of the path you specified in the `infer_cellpose.py` script.
 
 ### Visualizing all microscopy images and segmentations in neuroglancer
-1. First, install neuroglancer by running `pip install neuroglancer`, after activating the conda environment.
+1. Activate the conda environment and start jupyter notebook:
+
+   ```bash
+   conda activate segmSpaceM
+   jupyter notebook
+   ```
+
 2. Use the `visualize-data-in-neuroglancer.ipynb` notebook in the `example_project` directory to start the neuroglancer server and load your results (instructions are present in the notebook).
