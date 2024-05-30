@@ -1,14 +1,12 @@
 import numpy as np
 # from cellpose.metrics import aggregated_jaccard_index, average_precision
 
-from inferno.io.volumetric.volumetric_utils import slidingwindowslices
 import os
 import json, cv2, random
 import imageio
 import shutil
 from copy import deepcopy
 import pandas as pd
-import vigra
 
 from segmfriends.utils.various import check_dir_and_create
 

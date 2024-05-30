@@ -7,11 +7,14 @@ import time
 import cv2
 import tqdm
 
-from detectron2.config import get_cfg
-from detectron2.data.detection_utils import read_image
-from detectron2.utils.logger import setup_logger
+try:
+    from detectron2.config import get_cfg
+    from detectron2.data.detection_utils import read_image
+    from detectron2.utils.logger import setup_logger
 
-from detectron2.infer.predictor import VisualizationDemo
+    from detectron2.infer.predictor import VisualizationDemo
+except ImportError:
+    detectron2 = False
 
 # constants
 from segmUtils.segmentation.LIVECell.convert_output_to_panoptic import convert_predictions_to_panoptic_segm
@@ -73,6 +76,7 @@ def get_parser():
 
 
 if __name__ == "__main__":
+    assert detectron2, "Please install detectron2"
     mp.set_start_method("spawn", force=True)
     args = get_parser().parse_args()
     setup_logger(name="fvcore")

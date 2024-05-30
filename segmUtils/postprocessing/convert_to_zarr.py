@@ -1,7 +1,6 @@
 import numpy as np
 # from cellpose.metrics import aggregated_jaccard_index, average_precision
 
-from inferno.io.volumetric.volumetric_utils import slidingwindowslices
 import os
 import json, cv2, random
 import imageio
@@ -11,7 +10,6 @@ PIL.Image.MAX_IMAGE_PIXELS = None
 import shutil
 from copy import deepcopy
 import pandas as pd
-import vigra
 
 from segmfriends.utils.various import check_dir_and_create
 import segmfriends.utils.various as segm_utils

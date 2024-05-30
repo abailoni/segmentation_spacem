@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=62.3.0", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "segmUtils"
+description = "A very -early-development-stage set of utilities for segmenting images with Cellpose"
+readme = "README.md"
+authors = [
+    {name = "Alberto Bailoni", email = "alberto.bailoni@embl.de"}
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Framework :: napari",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Image Processing"
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "h5py",
+    "imageio",
+    "imageio-ffmpeg",
+    "opencv-python-headless",
+    "ngff_writer",
+    "pyyaml",
+    "tifffile",
+    "ome-zarr",
+    "git+https://github.com/abailoni/speedrun@master#egg=speedrun",
+    "git+https://github.com/abailoni/inferno@my_dev#egg=inferno",
+    "imageio",
+    "cellpose",
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://github.com/abailoni/segmentation_spacem"
+repository = "https://github.com/abailoni/segmentation_spacem"
+
+#[project.optional-dependencies]
+#testing = [
+#    "PyQt5", # required by pytest-qt, qtpy is not sufficient
+#    "pytest",
+#    "pytest-cov",
+#    "pytest-qt",
+##    "pytest-pycharm",
+#]
+
+#[tool.setuptools.packages.find]
+#where = ["src"]
+
+[tool.setuptools]
+#package-dir = {"" = "src"}
+include-package-data = true
+#package-data = {"napari_spacem_qc" = ["napari.yaml"], "napari_spacem_qc.assets" = ["*.png", "*.json"]}
+exclude-package-data = {"*" = ["__pycache__", "*.py[co]"]}
+
+[tool.setuptools_scm]
+write_to = "segmUtils/_version.py"
+version_scheme = "post-release"
