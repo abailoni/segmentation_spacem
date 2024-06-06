@@ -69,5 +69,5 @@ include-package-data = true
 exclude-package-data = {"*" = ["__pycache__", "*.py[co]"]}
 
 [tool.setuptools_scm]
-write_to = "segmUtils/_version.py"
+write_to = "src/segmUtils/_version.py"
 version_scheme = "post-release"
